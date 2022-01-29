@@ -3,13 +3,16 @@ export const mixin = {
     roundToTwo(num) {    
       return +(Math.round(num + "e+2")  + "e-2");
     },
-    // https://tbc.wowhead.com/guides/priest-healer-stat-priority-burning-crusade-classic
-    // to add; if level is below 20
+    convertToNumber(txt) {
+      if (Number.isNaN(txt)) return 0;
+      return Number(txt);
+    },
+    
+    // after consulting with currelius (pally) and knade (priest), the right formula should be
+    // (level_rank_was_learned + 11) / 70
     calculateLevelPenalties(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
-        // New Coefficient = Original Coefficient * (Level the next rank of the spell was learned at + 5) / Your level
-        let nextRankLevel = i < spellRanks.length - 1 ? spellRanks[i + 1]['level'] : 70;
-        let levelPenalty = Math.min((nextRankLevel + 5) / 70, 1);
+        let levelPenalty = Math.min((spellRanks[i]['level'] + 11) / 70, 1);
         // sub level 20 penalty
         if (spellRanks[i]['level'] < 20) {
           levelPenalty *= (1 - ((20 - spellRanks[i]['level']) * 0.0375))

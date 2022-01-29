@@ -12,7 +12,7 @@
         <th>Total Heal</th>
         <th>HPS</th>
         <th>Efficiency</th>
-        <th  v-if="spells['direct']">Inspiration %</th>
+        <th v-if="showInspiration">Inspiration %</th>
       </tr>
       <tr v-for="spell in spells['ranks']" :key="spell['rank']">
         <td>{{ spell['rank'] }}</td>
@@ -25,7 +25,7 @@
         <td>{{ spell['totalHeal'] }}</td>
         <td>{{ spell['hps'] }}</td>
         <td>{{ spell['efficiency'] }}</td>
-        <td  v-if="spells['direct']">{{ spell['inspiration_uptime'] }}%</td>
+        <td  v-if="showInspiration">{{ spell['inspiration_uptime'] }}%</td>
       </tr>
     </table>
     <p>
@@ -35,6 +35,9 @@
       </span>
       <span v-if="spells['class'] == 'shaman'">
         Spell values are taken from Egregious's <a href="http://bit.ly/3bJ1ef0">calculator</a>. 
+      </span>
+      <span v-if="spells['class'] == 'paladin'">
+        Formula and spell values are taken from Currelius's <a href="https://docs.google.com/spreadsheets/d/1qyhnntH3Mb8skxqZj2Bco3Z6Czt_na1jcn-gfxC5S9Y/edit#gid=227971422">calculator</a>. 
       </span>
       <span>If you see any bugs, please message Trollhealer (Arugal).</span></p>
   </div>
@@ -47,6 +50,12 @@ export default {
   name: 'SummaryTable',
   props: {
     spells: Object
+  },
+  computed: {
+    showInspiration() {
+      if (!this.spells) return;
+      return this.spells['direct'] && (this.spells['class'] === 'priest' || this.spells['class'] === 'shaman');
+    }
   },
   data() {
     return {

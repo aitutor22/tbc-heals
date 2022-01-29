@@ -17,6 +17,12 @@ import CircleOfHealing from
 import HealingWave from
   './components/HealingWave.vue';
 
+import HolyLight from
+  './components/HolyLight.vue';
+
+import FlashOfLight from
+  './components/FlashOfLight.vue';
+
 import {store} from './store';
 
 Vue.use(VueRouter)
@@ -28,6 +34,8 @@ const routes = [
   {path: '/renew', component: Renew, name: 'renew'},
   {path: '/circleofhealing', component: CircleOfHealing, name: 'coh'},
   {path: '/healingwave', component: HealingWave, name: 'healing-wave'},
+  {path: '/holylight', component: HolyLight, name: 'holy-light'},
+  {path: '/flashoflight', component: FlashOfLight, name: 'flash-of-light'},
   {path: '*', component: GreaterHeal},
 ];
 

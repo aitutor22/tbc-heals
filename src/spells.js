@@ -80,8 +80,8 @@ export const healingWave = {
   hot: false,
   class: 'shaman',
   ranks: [
-    {'rank': 1, 'mana': 25, 'level': 1, 'castTime': 1.5, 'min': 34, 'max': 45, 'hotTick': 0},
-    {'rank': 2, 'mana': 45, 'level': 6, 'castTime': 2, 'min': 64, 'max': 78, 'hotTick': 0},
+    // {'rank': 1, 'mana': 25, 'level': 1, 'castTime': 1.5, 'min': 34, 'max': 45, 'hotTick': 0},
+    // {'rank': 2, 'mana': 45, 'level': 6, 'castTime': 2, 'min': 64, 'max': 78, 'hotTick': 0},
     {'rank': 3, 'mana': 80, 'level': 12, 'castTime': 2.5, 'min': 129, 'max': 155, 'hotTick': 0},
     {'rank': 4, 'mana': 155, 'level': 18, 'castTime': 3, 'min': 268, 'max': 316, 'hotTick': 0},
     {'rank': 5, 'mana': 200, 'level': 24, 'castTime': 3, 'min': 367, 'max': 440, 'hotTick': 0},
@@ -93,4 +93,42 @@ export const healingWave = {
     {'rank': 11, 'mana': 655, 'level': 63, 'castTime': 3, 'min': 1725, 'max': 1969, 'hotTick': 0},
     {'rank': 12, 'mana': 720, 'level': 69, 'castTime': 3, 'min': 2134, 'max': 2436, 'hotTick': 0},    
   ],
+};
+
+export const flashOfLight = {
+  name: 'Flash Of Light',
+  description: ['Heals a friendly target'],
+  class: 'paladin',
+  direct: true,
+  hot: false,
+  ranks: [
+    { 'rank': 1, 'mana': 35, 'level': 20, 'castTime': 1.5, 'min': 67, 'max': 77, 'hotTick': 0 },
+    { 'rank': 2, 'mana': 50, 'level': 26, 'castTime': 1.5, 'min': 102, 'max': 117, 'hotTick': 0 },
+    { 'rank': 3, 'mana': 70, 'level': 34, 'castTime': 1.5, 'min': 153, 'max': 171, 'hotTick': 0 },
+    { 'rank': 4, 'mana': 90, 'level': 42, 'castTime': 1.5, 'min': 206, 'max': 231, 'hotTick': 0 },
+    { 'rank': 5, 'mana': 115, 'level': 50, 'castTime': 1.5, 'min': 278, 'max': 310, 'hotTick': 0 },
+    { 'rank': 6, 'mana': 140, 'level': 58, 'castTime': 1.5, 'min': 348, 'max': 389, 'hotTick': 0 },
+    { 'rank': 7, 'mana': 180, 'level': 66, 'castTime': 1.5, 'min': 458, 'max': 513, 'hotTick': 0 },
+  ],
+};
+
+export const holyLight = {
+  name: 'Holy Light',
+  description: ['Heals a friendly target'],
+  class: 'paladin',
+  direct: true,
+  hot: false,
+  ranks: [
+    // { 'rank': 1, 'mana': 35, 'level': 1, 'castTime': 2.5, 'min': 42, 'max': 51, 'hotTick': 0 },
+    // { 'rank': 2, 'mana': 60, 'level': 6, 'castTime': 2.5, 'min': 81, 'max': 96, 'hotTick': 0 },
+    { 'rank': 3, 'mana': 110, 'level': 14, 'castTime': 2.5, 'min': 167, 'max': 196, 'hotTick': 0 },
+    { 'rank': 4, 'mana': 190, 'level': 22, 'castTime': 2.5, 'min': 322, 'max': 368, 'hotTick': 0 },
+    { 'rank': 5, 'mana': 275, 'level': 30, 'castTime': 2.5, 'min': 506, 'max': 569, 'hotTick': 0 },
+    { 'rank': 6, 'mana': 365, 'level': 38, 'castTime': 2.5, 'min': 717, 'max': 799, 'hotTick': 0 },
+    { 'rank': 7, 'mana': 465, 'level': 46, 'castTime': 2.5, 'min': 968, 'max': 1076, 'hotTick': 0 },
+    { 'rank': 8, 'mana': 580, 'level': 54, 'castTime': 2.5, 'min': 1272, 'max': 1414, 'hotTick': 0 },
+    { 'rank': 9, 'mana': 660, 'level': 60, 'castTime': 2.5, 'min': 1590, 'max': 1770, 'hotTick': 0 },
+    { 'rank': 10, 'mana': 710, 'level': 62, 'castTime': 2.5, 'min': 1773, 'max': 1917, 'hotTick': 0 },
+    { 'rank': 11, 'mana': 840, 'level': 70, 'castTime': 2.5, 'min': 2196, 'max': 2447, 'hotTick': 0 },
+    ],
 };

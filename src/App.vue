@@ -15,9 +15,14 @@
           <li class="nav-item">
             <router-link :to="{name:'coh'}" class="nav-link">Circle of Healing</router-link>
           </li>
-
           <li class="nav-item">
             <router-link :to="{name:'healing-wave'}" class="nav-link">Healing Wave</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link :to="{name:'holy-light'}" class="nav-link">Holy Light</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link :to="{name:'flash-of-light'}" class="nav-link">Flash of Light</router-link>
           </li>
         </ul>
       

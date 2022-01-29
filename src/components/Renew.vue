@@ -81,13 +81,6 @@ export default {
   mixins: [mixin],
   data() {
     return {
-      // priestOptions: {
-      //   'improvedRenew': true,
-      //   'mentalAgility': true,
-      //   'spirtualHealing': true,
-      //   '4pT5': false,
-      //   '2pT3': false,
-      // },
       baseChartData: null,
       chartoptions: chartoptions,
     };
@@ -100,6 +93,7 @@ export default {
       let _spells = JSON.parse(JSON.stringify(renew));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
+      console.log(_spells);
       return _spells;
     },
     chartdata() {

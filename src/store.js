@@ -23,22 +23,6 @@ export const store = new Vuex.Store({
       // used only for healing wave
       'improvedHealingWave': true,
       'healingWay': false,
-
-      // // shared between flash heal and greater heal
-      // 'empoweredHealing': true,
-      // 'holyConcentration': false,
-
-      // // for greater heal
-      // '2pT5': false,
-      // '4pT6': false,
-      // 'improvedHealing': true,
-      // 'divineFury': true,
-
-      // // for renew
-      // 'improvedRenew': true,
-      // 'mentalAgility': true,
-      // '4pT5': false,
-      // '2pT3': false,
     },
     priestOptions: {
       // used for all healing spells
@@ -60,6 +44,16 @@ export const store = new Vuex.Store({
       '4pT5': false,
       '2pT3': false,
     },
+    paladinOptions: {
+      'holyLight': true,
+      'sanctifiedLight': false,
+      'illumination': true,
+      'lightGrace': true,
+      'libram': 'others',
+      'blessingLight': false,
+      '2pT6': false,
+      '4pT6': false,
+    }
   },
   getters: {
     // Add the `getField` getter to the
