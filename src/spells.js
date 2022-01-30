@@ -95,6 +95,22 @@ export const healingWave = {
   ],
 };
 
+export const lesserHealingWave = {
+  name: 'Lesser Healing Wave',
+  description: ['Heals a friendly target.'],
+  direct: true,
+  hot: false,
+  ranks: [
+  { 'rank': 1, 'mana': 105, 'level': 20, 'castTime': 1.5, 'min': 162, 'max': 186, 'hotTick': 0 },
+  { 'rank': 2, 'mana': 145, 'level': 28, 'castTime': 1.5, 'min': 247, 'max': 281, 'hotTick': 0 },
+  { 'rank': 3, 'mana': 185, 'level': 36, 'castTime': 1.5, 'min': 337, 'max': 381, 'hotTick': 0 },
+  { 'rank': 4, 'mana': 235, 'level': 44, 'castTime': 1.5, 'min': 458, 'max': 514, 'hotTick': 0 },
+  { 'rank': 5, 'mana': 305, 'level': 52, 'castTime': 1.5, 'min': 631, 'max': 705, 'hotTick': 0 },
+  { 'rank': 6, 'mana': 380, 'level': 60, 'castTime': 1.5, 'min': 832, 'max': 928, 'hotTick': 0 },
+  { 'rank': 7, 'mana': 440, 'level': 66, 'castTime': 1.5, 'min': 1039, 'max': 1185, 'hotTick': 0 },
+  ],
+};
+
 export const flashOfLight = {
   name: 'Flash Of Light',
   description: ['Heals a friendly target'],

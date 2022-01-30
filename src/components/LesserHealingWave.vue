@@ -49,28 +49,12 @@
           <label class="form-check-label" for="tidalFocus">Tidal Focus</label>
         </div>
 
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="improvedHealingWave" v-model="shamanOptions['improvedHealingWave']">
-          <label class="form-check-label" for="improvedHealingWave">Improved Healing Wave</label>
-        </div>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="healingWay" v-model="shamanOptions['healingWay']">
-          <label class="form-check-label" for="healingWay">Healing Way</label>
-        </div>
-
         <br>
         <h6>Totem of...</h6>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="maelstrom" value="maelstrom" v-model="shamanOptions['totem']">
-          <label class="form-check-label" for="maelstrom">
-            Maelstrom
-          </label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="regrowth" value="regrowth" v-model="shamanOptions['totem']">
-          <label class="form-check-label" for="regrowth">
-            Regrowth
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="plains" value="plains" v-model="shamanOptions['totem']">
+          <label class="form-check-label" for="plains">
+            Plains
           </label>
         </div>
         <div class="form-check form-check-inline">
@@ -90,14 +74,14 @@
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {healingWave as spellData} from '../spells';
+import {lesserHealingWave as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 // note that HW rank 10 and below calculations differ from egregious as our level penalty formula is slightly different
 export default {
-  name: 'HealingWave',
+  name: 'LesserHealingWave',
   components: {BarChart, SummaryTable},
   props: {
   },
@@ -126,19 +110,14 @@ export default {
   methods: {
     calculateHealing(spellRanks) {
       // maps level to increase in healing power (based off egregious' calculator)
-      let totemRegrowth = {
-        1: 10,
-        2: 17,
-        3: 24,
-        4: 31,
-        5: 38,
-        6: 45,
-        7: 52,
-        8: 59,
-        9: 66,
-        10: 73,
-        11: 80,
-        12: 88
+      let totemPlains = {
+        1: 13,
+        2: 24,
+        3: 35,
+        4: 46,
+        5: 57,
+        6: 68,
+        7: 79,
       }
 
       for (let i = 0; i < spellRanks.length; i++) {
@@ -146,31 +125,18 @@ export default {
         // spell coefficient is based off original casting time
         let originalCastTime = spell['castTime'];
 
-        // assume maelstrom applies then tidal focus
-        // haven't double tested, but mana cost values seem close enough
-        // also, from discord, r1 hw cost is 1, which checks out
-        if (this.shamanOptions['totem'] === 'maelstrom') {
-          spell['mana'] -= 24;
-        }
-
         if (this.shamanOptions['tidalFocus']) {
           spell['mana'] *= 0.95;
         }
 
-        if (this.shamanOptions['improvedHealingWave']) {
-          spell['castTime'] -= 0.5;
-        }
-
         spell['castTime'] /= (1 + this.hastePercent / 100);
         spell['baseHeal'] = (spell['min'] + spell['max']) / 2 * (this.shamanOptions['purification'] ? 1.1 : 1)
-          * (this.shamanOptions['healingWay'] ? 1.18 : 1)
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
         // need to convertToNumber to prevent bugs where javascript uses string addition
-        spell['bonusHeal'] = ((this.convertToNumber(this.healingPower) + (this.shamanOptions['totem'] === 'regrowth' ? totemRegrowth[spell['rank']] : 0)) * coefficient)
+        spell['bonusHeal'] = ((this.convertToNumber(this.healingPower) + (this.shamanOptions['totem'] === 'plains' ? totemPlains[spell['rank']] : 0)) * coefficient)
           * (this.shamanOptions['purification'] ? 1.1 : 1)
-          * (this.shamanOptions['healingWay'] ? 1.18 : 1)
           * (100 - this.overhealPercent) / 100;
 
         this.calculateAndFormatMetrics(spell, this.critChance, true);

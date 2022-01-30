@@ -95,7 +95,7 @@
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {holyLight} from '../spells';
+import {holyLight as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
@@ -118,10 +118,10 @@ export default {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'paladinOptions']),
     spells() {
       if (!this.baseChartData) return;
-      let _spells = JSON.parse(JSON.stringify(holyLight));
+      let _spells = JSON.parse(JSON.stringify(spellData));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
-      console.log(_spells)
+      // console.log(_spells)
       return _spells;
     },
     chartdata() {
@@ -145,7 +145,6 @@ export default {
         }
 
         if (this.paladinOptions['illumination']) {
-          // spell['mana'] = modifiedCritChance / 100 * originalManaCost * 0.4 + (100 - modifiedCritChance) / 100 * spell['mana'];
           // if there is a crit, spell only cost 40%
           // the way illumination works is a bit weird, got this formula from currelius who has tested it extensively
           spell['mana'] = originalManaCost * (100 - (modifiedCritChance * 0.6)) / 100 - (this.paladinOptions['libram'] === 'truth' ? 34: 0);
@@ -166,26 +165,12 @@ export default {
           * (this.paladinOptions['holyLight'] ? 1.12 : 1)
           * (100 - this.overhealPercent) / 100;
 
-        let uncritHeal = spell['baseHeal'] + spell['bonusHeal'];
-        spell['critHeal'] = uncritHeal * 0.5 * modifiedCritChance / 100;
-        spell['totalHeal'] = uncritHeal + spell['critHeal'];
-
-        spell['hps'] = Math.round(spell['totalHeal'] / spell['castTime']);
-        spell['efficiency'] = this.roundToTwo(spell['totalHeal'] / spell['mana']);
-
-        // do rounding for formatting only at the end
-        spell['mana'] = Math.round(spell['mana']);
-        spell['castTime'] = this.roundToTwo(spell['castTime']);
-        spell['baseHeal'] = Math.round(spell['baseHeal']);
-        spell['bonusHeal'] = Math.round(spell['bonusHeal']);
-        spell['critHeal'] = Math.round(spell['critHeal']);
-        spell['totalHeal'] = Math.round(spell['totalHeal']);
+        this.calculateAndFormatMetrics(spell, modifiedCritChance, false);
       }
     },
   },
   mounted() {
-    console.log('holy light');
-    this.baseChartData = this.createEmptyChartData(holyLight);
+    this.baseChartData = this.createEmptyChartData(spellData);
   },
 }
 </script>

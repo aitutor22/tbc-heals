@@ -67,7 +67,7 @@
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {renew} from '../spells';
+import {renew as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
@@ -90,7 +90,7 @@ export default {
     ...mapFields(['healingPower', 'hastePercent', 'overhealPercent', 'priestOptions']),
     spells() {
       if (!this.baseChartData) return;
-      let _spells = JSON.parse(JSON.stringify(renew));
+      let _spells = JSON.parse(JSON.stringify(spellData));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
       console.log(_spells);
@@ -149,8 +149,7 @@ export default {
     },
   },
   mounted() {
-    console.log('greater heal');
-    this.baseChartData = this.createEmptyChartData(renew);
+    this.baseChartData = this.createEmptyChartData(spellData);
   },
 }
 </script>

@@ -19,6 +19,9 @@
             <router-link :to="{name:'healing-wave'}" class="nav-link">Healing Wave</router-link>
           </li>
           <li class="nav-item">
+            <router-link :to="{name:'lesser-healing-wave'}" class="nav-link">Lesser Healing Wave</router-link>
+          </li>
+          <li class="nav-item">
             <router-link :to="{name:'holy-light'}" class="nav-link">Holy Light</router-link>
           </li>
           <li class="nav-item">

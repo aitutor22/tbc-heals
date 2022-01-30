@@ -81,7 +81,7 @@
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {flashOfLight} from '../spells';
+import {flashOfLight as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
@@ -104,7 +104,7 @@ export default {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'paladinOptions']),
     spells() {
       if (!this.baseChartData) return;
-      let _spells = JSON.parse(JSON.stringify(flashOfLight));
+      let _spells = JSON.parse(JSON.stringify(spellData));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
       return _spells;
@@ -146,26 +146,12 @@ export default {
           * (this.paladinOptions['4pT6'] ? 1.05 : 1)
           * (100 - this.overhealPercent) / 100;
 
-        let uncritHeal = spell['baseHeal'] + spell['bonusHeal'];
-        spell['critHeal'] = uncritHeal * 0.5 * modifiedCritChance / 100;
-        spell['totalHeal'] = uncritHeal + spell['critHeal'];
-
-        spell['hps'] = Math.round(spell['totalHeal'] / spell['castTime']);
-        spell['efficiency'] = this.roundToTwo(spell['totalHeal'] / spell['mana']);
-
-        // do rounding for formatting only at the end
-        spell['mana'] = Math.round(spell['mana']);
-        spell['castTime'] = this.roundToTwo(spell['castTime']);
-        spell['baseHeal'] = Math.round(spell['baseHeal']);
-        spell['bonusHeal'] = Math.round(spell['bonusHeal']);
-        spell['critHeal'] = Math.round(spell['critHeal']);
-        spell['totalHeal'] = Math.round(spell['totalHeal']);
+        this.calculateAndFormatMetrics(spell, modifiedCritChance, false);
       }
     },
   },
   mounted() {
-    console.log('flash of light');
-    this.baseChartData = this.createEmptyChartData(flashOfLight);
+    this.baseChartData = this.createEmptyChartData(spellData);
   },
 }
 </script>

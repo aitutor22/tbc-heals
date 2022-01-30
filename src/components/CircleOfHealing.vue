@@ -60,7 +60,7 @@
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {circleOfHealing} from '../spells';
+import {circleOfHealing as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
@@ -85,7 +85,7 @@ export default {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'priestOptions']),
     spells() {
       if (!this.baseChartData) return;
-      let _spells = JSON.parse(JSON.stringify(circleOfHealing));
+      let _spells = JSON.parse(JSON.stringify(spellData));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
       return _spells;
@@ -119,28 +119,12 @@ export default {
           * NUMBER_OF_TARGETS_HIT
           * (100 - this.overhealPercent) / 100;
 
-        let uncritHeal = spell['baseHeal'] + spell['bonusHeal'];
-        spell['critHeal'] = uncritHeal * 0.5 * this.critChance / 100;
-        spell['totalHeal'] = uncritHeal + spell['critHeal'];
-
-        spell['hps'] = Math.round(spell['totalHeal'] / spell['castTime']);
-        spell['efficiency'] = this.roundToTwo(spell['totalHeal'] / spell['mana']);
-        spell['inspiration_uptime'] = this.calculateInspirationUptime(this.critChance / 100, spell['castTime']);
-
-        // do rounding for formatting only at the end
-        spell['mana'] = Math.round(spell['mana']);
-        spell['castTime'] = this.roundToTwo(spell['castTime']);
-        spell['inspiration_uptime'] = Math.round(spell['inspiration_uptime'] * 100);
-        spell['baseHeal'] = Math.round(spell['baseHeal']);
-        spell['bonusHeal'] = Math.round(spell['bonusHeal']);
-        spell['critHeal'] = Math.round(spell['critHeal']);
-        spell['totalHeal'] = Math.round(spell['totalHeal']);
+        this.calculateAndFormatMetrics(spell, this.critChance, true);
       }
     },
   },
   mounted() {
-    console.log('coh');
-    this.baseChartData = this.createEmptyChartData(circleOfHealing);
+    this.baseChartData = this.createEmptyChartData(spellData);
   },
 }
 </script>

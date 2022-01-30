@@ -1,4 +1,5 @@
 export const mixin = {
+  computed: {},
   methods: {
     roundToTwo(num) {    
       return +(Math.round(num + "e+2")  + "e-2");
@@ -22,7 +23,28 @@ export const mixin = {
     },
     calculateInspirationUptime(critChance, castTime) {
       let num_cast_in_15_sec = 15 / castTime;
-      return 1 - (1 - critChance) ** num_cast_in_15_sec
+      return 1 - (1 - critChance) ** num_cast_in_15_sec;
+    },
+    // given that a spell has baseHeal and bonusHeal, calculate various metrics
+    calculateAndFormatMetrics(spell, critChance, includeInspiration) {
+      let uncritHeal = spell['baseHeal'] + spell['bonusHeal'];
+      spell['critHeal'] = uncritHeal * 0.5 * critChance / 100;
+      spell['totalHeal'] = uncritHeal + spell['critHeal'];
+
+      spell['hps'] = Math.round(spell['totalHeal'] / spell['castTime']);
+      spell['efficiency'] = this.roundToTwo(spell['totalHeal'] / spell['mana']);
+
+      if (includeInspiration) {
+        spell['inspiration_uptime'] = Math.round(this.calculateInspirationUptime(critChance / 100, spell['castTime']) * 100);
+      }
+
+      // do rounding for formatting only at the end
+      spell['mana'] = Math.round(spell['mana']);
+      spell['castTime'] = this.roundToTwo(spell['castTime']);
+      spell['baseHeal'] = Math.round(spell['baseHeal']);
+      spell['bonusHeal'] = Math.round(spell['bonusHeal']);
+      spell['critHeal'] = Math.round(spell['critHeal']);
+      spell['totalHeal'] = Math.round(spell['totalHeal']);
     },
     createEmptyChartData(spellData) {
       // let numRanks = spellRanks.length;
