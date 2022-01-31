@@ -40,13 +40,32 @@
         </div>
 
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="spirtualHealing" v-model="priestOptions['spirtualHealing']">
-          <label class="form-check-label" for="spirtualHealing">Spirtual Healing</label>
+          <input class="form-check-input" type="checkbox" id="purification" v-model="shamanOptions['purification']">
+          <label class="form-check-label" for="purification">Purification</label>
         </div>
 
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="mentalAgility" v-model="priestOptions['mentalAgility']">
-          <label class="form-check-label" for="mentalAgility">Mental Agility</label>
+          <input class="form-check-input" type="checkbox" id="tidalFocus" v-model="shamanOptions['tidalFocus']">
+          <label class="form-check-label" for="tidalFocus">Tidal Focus</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="improvedChainHeal" v-model="shamanOptions['improvedChainHeal']">
+          <label class="form-check-label" for="improvedChainHeal">Improved Chain Heal</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="2pT6" v-model="shamanOptions['2pT6']">
+          <label class="form-check-label" for="2pT6">2px T6</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="4pT6" v-model="shamanOptions['4pT6']">
+          <label class="form-check-label" for="4pT6">4px T6</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="5pT2.5" v-model="shamanOptions['5pT2.5']">
+          <label class="form-check-label" for="5pT2.5">5px T2.5</label>
         </div>
 
         <div class="form-check">
@@ -58,27 +77,47 @@
           <input type="text" class="form-control" v-model="spireProcPercent">
         </div>
 
+        <br>
+        <h6>Totem of...</h6>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="rain" value="rain" v-model="shamanOptions['totem']">
+          <label class="form-check-label" for="rain">
+            Healing Rains
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="others" value="others" v-model="shamanOptions['totem']">
+          <label class="form-check-label" for="others">
+            Others
+          </label>
+        </div>
+        <div>
+          <button>Share Link</button>
+          <br>
+          <input type="text" name="" :value="paramsState">
+          <button @click="copyToClipboard">Copy</button>
+        </div>
       </div>
     </div>
 
+    <p><i>Note: Unsure about the exact behaviour of Totem of Healing Rain. Assumed +87 from totem will be affected by  purification and 4pT6, but not improved chain heal.</i></p>
     <summary-table v-if="spells" :spells="spells"></summary-table>
   </div>
 </template>
 
 <script>
 import {mapFields} from 'vuex-map-fields';
+import {mapGetters} from 'vuex';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
-import {circleOfHealing as spellData} from '../spells';
+import {chainHeal as spellData} from '../spells';
 import {mixin} from '../calculator';
 import {chartoptions} from '../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
-
-const NUMBER_OF_TARGETS_HIT = 5;
-
+// note that HW rank 10 and below calculations differ from egregious as our level penalty formula is slightly different
 export default {
-  name: 'CircleOfHealing',
+  name: 'ChainHeal',
   components: {BarChart, SummaryTable},
   props: {
   },
@@ -92,7 +131,8 @@ export default {
 
   computed: {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent',
-        'crystalSpire', 'spireProcPercent', 'priestOptions']),
+      'crystalSpire', 'spireProcPercent', 'shamanOptions']),
+    ...mapGetters(['paramsState']),
     spells() {
       if (!this.baseChartData) return;
       let _spells = JSON.parse(JSON.stringify(spellData));
@@ -106,33 +146,57 @@ export default {
     },
   },
   methods: {
+    async copyToClipboard() {
+      try {
+        await navigator.clipboard.writeText(this.paramsState);
+        alert('Copied');
+      } catch($e) {
+        alert('Cannot copy');
+      }
+    },
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
         // spell coefficient is based off original casting time
         let originalCastTime = spell['castTime'];
 
-        if (this.priestOptions['mentalAgility']) {
+        if (this.shamanOptions['tidalFocus']) {
+          spell['mana'] *= 0.95;
+        }
+
+        if (this.shamanOptions['2pT6']) {
           spell['mana'] *= 0.9;
+        }
+
+        // per lovelace, T2.5 0.4s applies first, then haste
+        if (this.shamanOptions['5pT2.5']) {
+          spell['castTime'] -= 0.4;
         }
 
         spell['castTime'] /= (1 + this.hastePercent / 100);
         spell['baseHeal'] = (spell['min'] + spell['max']) / 2
-          * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
+          * (this.shamanOptions['improvedChainHeal'] ? 1.2 : 1)
+          * (this.shamanOptions['purification'] ? 1.1 : 1)
+          * (this.shamanOptions['4pT6'] ? 1.05 : 1)
+          * (1 + 0.5 + 0.25)
           * (100 - this.overhealPercent) / 100;
 
-        // special formula for aoe coefficient
-        let coefficient = (spell['levelPenalty'] * originalCastTime / 3.5) / 2;
-        spell['bonusHeal'] = (this.healingPower * coefficient)
-          * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
+        let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
+        // unsure about this behavoiur - asume +88 from totem isn't affected by improved chain heal and casting coefficient
+        // but affected by 4pT6 and purification
+        spell['bonusHeal'] = (this.healingPower * coefficient * (this.shamanOptions['improvedChainHeal'] ? 1.2 : 1)
+          + (this.shamanOptions['totem'] === 'rain' ? 87 : 0))
+          * (this.shamanOptions['4pT6'] ? 1.05 : 1)
+          * (this.shamanOptions['purification'] ? 1.1 : 1)
+          * (1 + 0.5 + 0.25)
 
         // crystalSpire can crit, but crit is considered in the calculateAndFormatMetrics function
         if (this.crystalSpire) {
-          spell['bonusHeal'] += 200 * NUMBER_OF_TARGETS_HIT * this.spireProcPercent / 100
-            * (this.priestOptions['spirtualHealing'] ? 1.1 : 1);
+          // 3 being number of targets his
+          spell['bonusHeal'] += 200 * 3 * this.spireProcPercent / 100
+            * (this.shamanOptions['purification'] ? 1.1 : 1);
         }
+
         spell['bonusHeal'] *= (100 - this.overhealPercent) / 100;
 
         this.calculateAndFormatMetrics(spell, this.critChance, true);

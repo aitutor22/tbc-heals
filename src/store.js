@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+// import hash from 'object-hash'
 
 // Import the `getField` getter and the `updateField`
 // mutation function from the `vuex-map-fields` module.
@@ -14,6 +15,8 @@ export const store = new Vuex.Store({
     critChance: 15,
     hastePercent: 0,
     overhealPercent: 0,
+    crystalSpire: false,
+    spireProcPercent: 10,
     shamanOptions: {
       // used for all healing spells
       'purification': true,
@@ -23,6 +26,12 @@ export const store = new Vuex.Store({
       // used only for healing wave
       'improvedHealingWave': true,
       'healingWay': false,
+
+      // use for chain heal
+      'improvedChainHeal': true,
+      '2pT6': false,
+      '4pT6': false,
+      '5pT2.5': false,
     },
     priestOptions: {
       // used for all healing spells
@@ -59,6 +68,9 @@ export const store = new Vuex.Store({
     // Add the `getField` getter to the
     // `getters` of your Vuex store instance.
     getField,
+    paramsState: (state) => {
+      return new URLSearchParams(state).toString();
+    },
   },
   mutations: {
     // Add the `updateField` mutation to the

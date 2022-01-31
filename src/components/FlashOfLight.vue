@@ -59,6 +59,12 @@
         <br>
         <h6>Libram of...</h6>
         <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="souls" value="souls" v-model="paladinOptions['libram']">
+          <label class="form-check-label" for="souls">
+            Souls Redeemed
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="flexRadioDefault" id="light" value="light" v-model="paladinOptions['libram']">
           <label class="form-check-label" for="light">
             Light
@@ -137,11 +143,12 @@ export default {
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
+
+        let blessingLightHealBonus = this.calculateBlessingOfLightBonus(false, spell['levelPenalty']);
         // need to convertToNumber to prevent bugs where javascript uses string addition
-        spell['bonusHeal'] = (this.convertToNumber(this.healingPower)
-            + (this.paladinOptions['libram'] === 'light' ? 83 : 0)
-            + (this.paladinOptions['blessingLight'] ? 185 : 0))
-          * coefficient
+        spell['bonusHeal'] = ((this.convertToNumber(this.healingPower)
+            + (this.paladinOptions['libram'] === 'light' ? 83 : 0))
+          * coefficient + blessingLightHealBonus)
           * (this.paladinOptions['holyLight'] ? 1.12 : 1)
           * (this.paladinOptions['4pT6'] ? 1.05 : 1)
           * (100 - this.overhealPercent) / 100;

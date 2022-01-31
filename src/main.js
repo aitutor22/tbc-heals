@@ -14,6 +14,9 @@ import Renew from
 import CircleOfHealing from
   './components/CircleOfHealing.vue';
 
+import ChainHeal from
+  './components/ChainHeal.vue';
+
 import HealingWave from
   './components/HealingWave.vue';
 
@@ -36,6 +39,7 @@ const routes = [
   {path: '/flashheal', component: FlashHeal, name: 'flash-heal'},
   {path: '/renew', component: Renew, name: 'renew'},
   {path: '/circleofhealing', component: CircleOfHealing, name: 'coh'},
+  {path: '/chainheal', component: ChainHeal, name: 'chain-heal'},
   {path: '/lesserhealingwave', component: LesserHealingWave, name: 'lesser-healing-wave'},
   {path: '/healingwave', component: HealingWave, name: 'healing-wave'},
   {path: '/holylight', component: HolyLight, name: 'holy-light'},

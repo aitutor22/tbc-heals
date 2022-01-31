@@ -60,7 +60,7 @@ export const renew = {
 
 export const circleOfHealing = {
   name: 'Circle of Healing',
-  description: ["Blizzard needed to add a cooldown to Circle of Healing before releasing Classic TBC, this is such a stupid spell that takes no skills to use, how did they let that spell untouched for an entire expansion and also at the start of WOTLK is beyond me...", "Healing 5 people at once instantly with n o cooldown, this should not be allowed, I remember seeing those 2 holy priests on pserver duo healing the entirety of SWP by mindlessly spamming CoH and with a shadow priest in their group ontop of that...", "As a Druid main, it's really frustrating having to heal against this crap... And soon in Black Temple they'll be getting the mace from Illidan which will make things a lot worse... I don't get the choice of not nerfing the spell, why not give the same nerf it was given in WOTLK, a 6 sec cooldown, to give more room to the other healers..."],
+  description: ["Blizzard needed to add a cooldown to Circle of Healing before releasing Classic TBC, this is such a stupid spell that takes no skills to use, how did they let that spell untouched for an entire expansion and also at the start of WOTLK is beyond me...", "Healing 5 people at once instantly with no cooldown, this should not be allowed, I remember seeing those 2 holy priests on pserver duo healing the entirety of SWP by mindlessly spamming CoH and with a shadow priest in their group ontop of that...", "As a Druid main, it's really frustrating having to heal against this crap... And soon in Black Temple they'll be getting the mace from Illidan which will make things a lot worse... I don't get the choice of not nerfing the spell, why not give the same nerf it was given in WOTLK, a 6 sec cooldown, to give more room to the other healers..."],
   direct: true,
   hot: false,
   class: 'priest',
@@ -100,14 +100,30 @@ export const lesserHealingWave = {
   description: ['Heals a friendly target.'],
   direct: true,
   hot: false,
+  class: 'shaman',
   ranks: [
-  { 'rank': 1, 'mana': 105, 'level': 20, 'castTime': 1.5, 'min': 162, 'max': 186, 'hotTick': 0 },
-  { 'rank': 2, 'mana': 145, 'level': 28, 'castTime': 1.5, 'min': 247, 'max': 281, 'hotTick': 0 },
-  { 'rank': 3, 'mana': 185, 'level': 36, 'castTime': 1.5, 'min': 337, 'max': 381, 'hotTick': 0 },
-  { 'rank': 4, 'mana': 235, 'level': 44, 'castTime': 1.5, 'min': 458, 'max': 514, 'hotTick': 0 },
-  { 'rank': 5, 'mana': 305, 'level': 52, 'castTime': 1.5, 'min': 631, 'max': 705, 'hotTick': 0 },
-  { 'rank': 6, 'mana': 380, 'level': 60, 'castTime': 1.5, 'min': 832, 'max': 928, 'hotTick': 0 },
-  { 'rank': 7, 'mana': 440, 'level': 66, 'castTime': 1.5, 'min': 1039, 'max': 1185, 'hotTick': 0 },
+    { 'rank': 1, 'mana': 105, 'level': 20, 'castTime': 1.5, 'min': 162, 'max': 186, 'hotTick': 0 },
+    { 'rank': 2, 'mana': 145, 'level': 28, 'castTime': 1.5, 'min': 247, 'max': 281, 'hotTick': 0 },
+    { 'rank': 3, 'mana': 185, 'level': 36, 'castTime': 1.5, 'min': 337, 'max': 381, 'hotTick': 0 },
+    { 'rank': 4, 'mana': 235, 'level': 44, 'castTime': 1.5, 'min': 458, 'max': 514, 'hotTick': 0 },
+    { 'rank': 5, 'mana': 305, 'level': 52, 'castTime': 1.5, 'min': 631, 'max': 705, 'hotTick': 0 },
+    { 'rank': 6, 'mana': 380, 'level': 60, 'castTime': 1.5, 'min': 832, 'max': 928, 'hotTick': 0 },
+    { 'rank': 7, 'mana': 440, 'level': 66, 'castTime': 1.5, 'min': 1039, 'max': 1185, 'hotTick': 0 },
+  ],
+};
+
+export const chainHeal = {
+  name: 'Chain Heal',
+  description: ['Heals the friendly target, then jumps to heal additional nearby targets. If cast on a party member, the heal will only jump to other party members. Each jump is 50% as effective as the previous target. Heals 3 total targets.'],
+  direct: true,
+  hot: false,
+  class: 'shaman',
+  ranks: [
+    { 'rank': 1, 'mana': 260, 'level': 40, 'castTime': 2.5, 'min': 320, 'max': 368, 'hotTick': 0 },
+    { 'rank': 2, 'mana': 315, 'level': 46, 'castTime': 2.5, 'min': 405, 'max': 465, 'hotTick': 0 },
+    { 'rank': 3, 'mana': 405, 'level': 54, 'castTime': 2.5, 'min': 551, 'max': 629, 'hotTick': 0 },
+    { 'rank': 4, 'mana': 435, 'level': 61, 'castTime': 2.5, 'min': 605, 'max': 691, 'hotTick': 0 },
+    { 'rank': 5, 'mana': 540, 'level': 68, 'castTime': 2.5, 'min': 826, 'max': 943, 'hotTick': 0 },
   ],
 };
 

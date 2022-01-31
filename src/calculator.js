@@ -1,3 +1,5 @@
+// import hash from 'object-hash'
+
 export const mixin = {
   computed: {},
   methods: {
@@ -8,7 +10,6 @@ export const mixin = {
       if (Number.isNaN(txt)) return 0;
       return Number(txt);
     },
-    
     // after consulting with currelius (pally) and knade (priest), the right formula should be
     // (level_rank_was_learned + 11) / 70
     calculateLevelPenalties(spellRanks) {
@@ -45,6 +46,17 @@ export const mixin = {
       spell['bonusHeal'] = Math.round(spell['bonusHeal']);
       spell['critHeal'] = Math.round(spell['critHeal']);
       spell['totalHeal'] = Math.round(spell['totalHeal']);
+    },
+    // per currelius, blessing of Light is multiplied by level penalty but not cast time penalty
+    // true if holy light, else flash of light
+    calculateBlessingOfLightBonus(isHolyLight, levelPenalty) {
+      let baseBlessingOfLight = isHolyLight ? 580 : 185;
+      let libramSouls = isHolyLight ? 120 : 60;
+
+      if (!this.paladinOptions['blessingLight']) {
+        return 0
+      }
+      return (baseBlessingOfLight + (this.paladinOptions['libram'] === 'souls' ? libramSouls : 0)) * levelPenalty;
     },
     createEmptyChartData(spellData) {
       // let numRanks = spellRanks.length;
@@ -103,5 +115,9 @@ export const mixin = {
 
       return chartData;
     }
+  },
+  mounted() {
+    // console.log('mounting');
+    // console.log(this.$route.query);
   }
 }

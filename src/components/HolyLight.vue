@@ -67,6 +67,12 @@
         <br>
         <h6>Libram of...</h6>
         <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="souls" value="souls" v-model="paladinOptions['libram']">
+          <label class="form-check-label" for="souls">
+            Souls Redeemed
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="flexRadioDefault" id="lightbringer" value="lightbringer" v-model="paladinOptions['libram']">
           <label class="form-check-label" for="lightbringer">
             Lightbringer
@@ -93,6 +99,7 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
+import {mapMutations} from 'vuex';
 import BarChart from '../chart.js';
 import SummaryTable from './SummaryTable.vue';
 import {holyLight as spellData} from '../spells';
@@ -130,6 +137,7 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setBlessingLight']),
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
@@ -157,11 +165,13 @@ export default {
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
+        
+
+        let blessingLightHealBonus = this.calculateBlessingOfLightBonus(true, spell['levelPenalty']);
         // need to convertToNumber to prevent bugs where javascript uses string addition
-        spell['bonusHeal'] = (this.convertToNumber(this.healingPower)
-            + (this.paladinOptions['libram'] === 'lightbringer' ? 87 : 0)
-            + (this.paladinOptions['blessingLight'] ? 580 : 0))
-          * coefficient
+        spell['bonusHeal'] = ((this.convertToNumber(this.healingPower)
+          + (this.paladinOptions['libram'] === 'lightbringer' ? 87 : 0))
+          * coefficient + blessingLightHealBonus)
           * (this.paladinOptions['holyLight'] ? 1.12 : 1)
           * (100 - this.overhealPercent) / 100;
 
