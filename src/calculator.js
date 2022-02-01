@@ -2,6 +2,28 @@ import Heap from 'heap-js';
 
 import {mapMutations} from 'vuex';
 
+const CONSUMES = {
+  'SUPER_MANA_POTION': {
+    deficitToUse: 2400,
+    value: 2400,
+    cooldown: 120,
+    waitForInitialUses: [],
+  },
+  'DARK_RUNE': {
+    deficitToUse: 1200,
+    value: 1200,
+    cooldown: 120,
+    // requires super mana potion to be used once first
+    waitForInitialUses: ['SUPER_MANA_POTION'],
+  },
+  'SHADOWFIEND': {
+    deficitToUse: 7000,
+    value: 0,
+    cooldown: 60 * 5,
+    waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE'],
+  },
+};
+
 export const mixin = {
   computed: {},
   methods: {
@@ -68,46 +90,51 @@ export const mixin = {
       return Math.floor(combat_spirit_based_mp2 + other_mp5 / 5 * 2);
     },
     // status - HEALING_SPELL_CAST, OOM
-    logHelper(status, timeLastAction, currentMana, totalManaPool) {
+    logHelper(status, time, options) {
+      let currentMana = options['currentMana'],
+        manaPool = options['manaPool'];
+
       if (status === 'OOM') {
-        return `Ran out of mana after ${this.roundToTwo(timeLastAction)}s`;
+        return `Ran out of mana after ${this.roundToTwo(time)}s`;
       } else if (status === 'HEALING_SPELL_CAST') {
-       return `Casted healing spell at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
-      } else if (status === 'SHADOWFIEND_SPELL_CAST') {
-       return `Casted shadowfiend at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
+       return `Casted healing spell at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'MANA_TICK') {
-        return `Mana tick at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
+        return `Mana tick at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'SHADOWFIEND_MANA_TICK') {
-        return `Shadowfiend attacked at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
-      } else if (status === 'SUPER_MANA_POTION' || status === 'DARK_RUNE') {
-        return `Used ${status} at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
+        return `Shadowfiend attacked at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+      } else if (status === 'SUPER_MANA_POTION' || status === 'DARK_RUNE' || status === 'SHADOWFIEND') {
+        return `Used ${status} at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       }
     },
     // bunch of magic numbers here, refactor in future
     // returns [boolean_indiciating_if_consume_used, mana_regen, message]
-    consumeHelper(time, consumesOffCD, currentMana, totalManaPool) {
-      let manaDeficit = totalManaPool - currentMana;
+    consumeHelper(time, options) {
+      let manaDeficit = options['manaPool'] - options['currentMana'];
 
-      if (time >= consumesOffCD['SUPER_MANA_POTION'] && manaDeficit > 2400) {
-        consumesOffCD['SUPER_MANA_POTION'] = time + 120;
-        return [true, 2400, 'SUPER_MANA_POTION'];
-      } else if (time >= consumesOffCD['DARK_RUNE'] && manaDeficit > 1200 && consumesOffCD['SUPER_MANA_POTION'] > 0) {
-        // our very first consume usage should be super mana potion and not dark rune
-        consumesOffCD['DARK_RUNE'] = time + 120;
-        return [true, 1200, 'DARK_RUNE'];
+      for (let key in CONSUMES) {
+        if (time >= options['consumesOffCD'][key] && manaDeficit > CONSUMES[key]['deficitToUse']) {
+          // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
+          let haveUsedPreviousConsumes = CONSUMES[key]['waitForInitialUses'].map(i => options['consumesOffCD'][i] > 0);
+          if (haveUsedPreviousConsumes.length > 0 && haveUsedPreviousConsumes.indexOf(false) > -1) {
+            continue;
+          }
+
+          // if we do use a consume, we return as we should only use one consume at a time
+          options['consumesOffCD'][key] = time + CONSUMES[key]['cooldown'];
+          if (key !== 'SHADOWFIEND') {
+            options['currentMana'] += CONSUMES[key]['value'];  
+          } else {
+            this.addItemToQueue(options, time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
+            options['shadowfiendTicks'] = 0;
+          }
+          options['logs'].push(this.logHelper(key, time, options));
+          return key;
+        }
       }
-      else if (time >= consumesOffCD['SHADOWFIEND'] && manaDeficit > 5000 && consumesOffCD['SUPER_MANA_POTION'] > 0 &&
-        consumesOffCD['DARK_RUNE'] > 0) {
-        // our very first consume usage should be super mana potion and not dark rune
-        consumesOffCD['SHADOWFIEND'] = time + 60 * 5;
-        return [true, 0, 'SHADOWFIEND'];
-      }
-      else {
-        return [false, null];
-      }
+      return null;
     },
-    addItemToQueue(queue, time, type) {
-      queue.push({
+    addItemToQueue(options, time, type) {
+      options['priorityQueue'].push({
         time: time,
         type: type,
       });
@@ -115,35 +142,27 @@ export const mixin = {
     healingSpellCastHelper(options, nextEvent, manaCost, castTime, logs) {
       // assume that mana potion can only be used before a spell cast
       // we first check for consume usage
-      // consumeResults - [boolean_indiciating_if_consume_used, mana_regen, message]
-      let consumeResults = this.consumeHelper(nextEvent.time, options['consumesOffCD'], options['currentMana'], options['manaPool']);
-      if (consumeResults[0]) {
-        // shadowfiend is handled differently
-        if (consumeResults[2] !== 'SHADOWFIEND') {
-          options['currentMana'] += consumeResults[1];
-          logs.push(this.logHelper(consumeResults[2], nextEvent.time, options['currentMana'], options['manaPool']));
-        } else {
-          // if we use shadowfiend, then we don't cast a healing spell during this gcd and instead cast it 1 gcd later
-          this.addItemToQueue(options['priorityQueue'], nextEvent.time + options['GCD'], 'HEALING_SPELL_CAST');
-          this.addItemToQueue(options['priorityQueue'], nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
-          options['shadowfiendTicks'] = 0;
-          logs.push(this.logHelper('SHADOWFIEND_SPELL_CAST', nextEvent.time, options['currentMana'], options['manaPool']));
-          return;
-        }
+      let consumeResults = this.consumeHelper(nextEvent.time, options);
+      // shadowfiend is handled differently as it doesnt add back mana immediately
+      if (consumeResults === 'SHADOWFIEND') {
+        // if we use shadowfiend, then we don't cast a healing spell during this gcd and instead cast it 1 gcd later
+        this.addItemToQueue(options, nextEvent.time + options['GCD'], 'HEALING_SPELL_CAST');
+        return;
       }
 
       if (options['currentMana'] < manaCost) {
         // timeLastAction refers to our previously casted spell as we ran oom then
-        logs.push(this.logHelper('OOM', options['timeLastAction'], options['currentMana'], options['manaPool']));
+        logs.push(this.logHelper('OOM', options['timeLastAction'], options));
+        options['status'] = 'ended'
         return;
       }
       // can cast
       options['currentMana'] -= manaCost;
       options['timeLastAction'] = nextEvent.time;
       // timeLastAction refers to the time we cast the current spell
-      logs.push(this.logHelper('HEALING_SPELL_CAST', options['timeLastAction'], options['currentMana'], options['manaPool']));
+      logs.push(this.logHelper('HEALING_SPELL_CAST', options['timeLastAction'], options));
       // adding next spellcast (based on cast time)
-      this.addItemToQueue(options['priorityQueue'], nextEvent.time + castTime, 'HEALING_SPELL_CAST');
+      this.addItemToQueue(options, nextEvent.time + castTime, 'HEALING_SPELL_CAST');
     },
     calculateTimeOOM(manaCost, castTime) {
       let options = {
@@ -152,13 +171,16 @@ export const mixin = {
         'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
         'shadowfiendTicks': 0,
         'maxTime': 4 * 60, // in seconds,
-        'gcd': 1.5,
+        'GCD': 1.5,
         'timeLastAction': 0,
         'consumesOffCD': {
           'SUPER_MANA_POTION': 0,
           'DARK_RUNE': 0,
           'SHADOWFIEND': 0,
         },
+        // can either be on-going or ended
+        'status': 'ongoing',
+        'logs': [],
       }
       options['currentMana'] = options['manaPool'];
       options['shadowfiendHealingPerTick'] = options['shadowfiendHealing'] / 10;
@@ -166,49 +188,37 @@ export const mixin = {
       const customPriorityComparator = (a, b) => a.time - b.time;
       options['priorityQueue'] = new Heap(customPriorityComparator);
 
-      this.addItemToQueue(options['priorityQueue'], 0, 'HEALING_SPELL_CAST');
-      this.addItemToQueue(options['priorityQueue'], 0.1, 'MANA_TICK');
+      this.addItemToQueue(options, 0, 'HEALING_SPELL_CAST');
+      this.addItemToQueue(options, 0.1, 'MANA_TICK');
 
-      // // let manaPool = 12000;
-      // // heals over 10x 1.5s intervals
-      // // let shadowfiendHealing = 7000;
-      // // let shadowfiendHealingPerTick = shadowfiendHealing / 10;
-      // // let intervalBetweenShadowfiendTick = 1.5;
-      // // let shadowfiendTicks = 0;
-      // // let currentMana = manaPool;
-      // // evaluate to max of 20 mins
-      // let maxTime = 4 * 60;
-      // // hardcoded for now
-      let inCombatManaTick = this.calculateManaRegenPerTick(650, 600, 300);
-      // let GCD = 1.5;
+      let inCombatManaTick = this.calculateManaRegenPerTick(650, 600, 200);
 
-      let logs = [];
       let nextEvent;
       do {
         nextEvent = options['priorityQueue'].pop();
         if (nextEvent.type === 'HEALING_SPELL_CAST') {
-          this.healingSpellCastHelper(options, nextEvent, manaCost, castTime, logs);
+          this.healingSpellCastHelper(options, nextEvent, manaCost, castTime, options['logs']);
         }
         else if (nextEvent.type === 'MANA_TICK') {
           options['currentMana'] += inCombatManaTick;
-          logs.push(this.logHelper('MANA_TICK', nextEvent.time, options['currentMana'], options['manaPool']));
+          options['logs'].push(this.logHelper('MANA_TICK', nextEvent.time, options));
           // adding next mana tick (based on 2s tick timer)
-          this.addItemToQueue(options['priorityQueue'], nextEvent.time + 2, 'MANA_TICK');
+          this.addItemToQueue(options, nextEvent.time + 2, 'MANA_TICK');
         } else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
           options['shadowfiendTicks']++;
           options['currentMana'] += options['shadowfiendHealingPerTick']; 
-          logs.push(this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options['currentMana'], options['manaPool']));
+          options['logs'].push(this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options));
           // once we readch 10 ticks, means shadowfiend has finished
           if (options['shadowfiendTicks'] < 10) {
-            this.addItemToQueue(options['priorityQueue'], nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
+            this.addItemToQueue(options, nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
           }
         }
-      } while (nextEvent.time < options['maxTime'])
+      } while (nextEvent.time < options['maxTime'] && options['status'] === 'ongoing')
 
       console.log(options['consumesOffCD']);
       return {
         // time: manaPool / manaCostPerSec,
-        logs: logs,
+        logs: options['logs'],
       };
     },
     init(spellData) {
