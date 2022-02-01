@@ -10,7 +10,7 @@ Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   state: {
-    className: 'shaman',
+    className: 'priest',
     healingPower: 2200,
     // note we use 15 rather than 0.15
     critChance: 15,
@@ -18,6 +18,13 @@ export const store = new Vuex.Store({
     overhealPercent: 0,
     crystalSpire: false,
     spireProcPercent: 10,
+    oomOptions: {
+      cpm: 30,
+      manaCost: 405,
+      int: 650,
+      spirit: 600,
+      manaPool: 12000,
+    },
     shamanOptions: {
       // used for all healing spells
       'purification': true,

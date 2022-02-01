@@ -1,70 +1,69 @@
 <template>
   <div class="container">
-    <div class="row">
+<!--     <div class="row">
       <div v-if="spells" class="col-12">
         <h1>{{ spells['name'] }}</h1>
       </div>
-      <!-- only reason para code is so weird is to fit in double paras for COH -->
+      only reason para code is so weird is to fit in double paras for COH
       <div v-if="spells" class="col-12">
         <p v-for="(para, index) in spells['description']" :key="index">{{ para }}</p>
       </div>
-    </div>
+    </div> -->
     <div class="row">
       <div class="col-8">
         <bar-chart
-          v-if="spells"
+          v-if="chartdata"
           id="chart"
           :chart-data="chartdata"
           :options="chartoptions"/>
       </div>
 
       <div class="col-4">
-        <div class="input-group mb-2" style="width: 50%">
-          <span class="input-group-text" id="basic-addon1">+Heal</span>
-          <input type="text" class="form-control" v-model="healingPower">
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">CPM</span>
+          <input type="text" class="form-control" v-model="oomOptions['cpm']">
+        </div>
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">Average Mana Cost</span>
+          <input type="text" class="form-control" v-model="oomOptions['manaCost']">
+        </div>
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">Buffed Int</span>
+          <input type="text" class="form-control" v-model="oomOptions['int']">
         </div>
 
-        <div class="input-group mb-2" style="width: 50%">
-          <span class="input-group-text" id="basic-addon1">Crit %</span>
-          <input type="text" class="form-control" v-model="critChance">
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">Buffed Spirit</span>
+          <input type="text" class="form-control" v-model="oomOptions['spirit']">
         </div>
 
-        <div class="input-group mb-2" style="width: 50%">
-          <span class="input-group-text" id="basic-addon1">Haste %</span>
-          <input type="text" class="form-control" v-model="hastePercent">
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">Mana Pool</span>
+          <input type="text" class="form-control" v-model="oomOptions['manaPool']">
         </div>
-
-        <div class="input-group mb-2" style="width: 50%">
-          <span class="input-group-text" id="basic-addon1">Overheal %</span>
-          <input type="text" class="form-control" v-model="overhealPercent">
-        </div>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="spirtualHealing" v-model="priestOptions['spirtualHealing']">
-          <label class="form-check-label" for="spirtualHealing">Spirtual Healing</label>
-        </div>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="mentalAgility" v-model="priestOptions['mentalAgility']">
-          <label class="form-check-label" for="mentalAgility">Mental Agility</label>
-        </div>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="crystalSpire" v-model="crystalSpire">
-          <label class="form-check-label" for="crystalSpire">Crystal Spire of Karabor</label>
-        </div>
-        <div class="input-group mb-2" style="width: 50%" v-if="crystalSpire">
-          <span class="input-group-text" id="basic-addon1">Spire Proc %</span>
-          <input type="text" class="form-control" v-model="spireProcPercent">
-        </div>
-
+        <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
       </div>
     </div>
-    <div class="row">
-      <textarea class="log" readonly="" v-model="logs"></textarea>
+    <div class="row" v-if="results">
+      <ul>
+        <li>Time to oom: {{ results['timeToOOM'] }}s</li>
+        <li>Mana regen excld. consumes/shadowfiend: {{ results['manaSummary']['MANA_TICK'] }} ({{ results['inCombatManaTick'] }} per tick)</li>
+        <li>Mana from Super Mana Pots: {{ results['manaSummary']['SUPER_MANA_POTION'] }}</li>
+        <li>Mana from Dark Runes: {{ results['manaSummary']['DARK_RUNE'] }}</li>
+        <li>Mana from Shadowfiend: {{ results['manaSummary']['SHADOWFIEND'] }}</li>
+      </ul>
     </div>
 
-    <!-- <summary-table v-if="spells" :spells="spells"></summary-table> -->
+    <div class="row">
+      <div class="col-6">
+        <h2>Full Logs</h2>
+        <textarea class="log" readonly="" v-model="logs"></textarea>  
+      </div>
+      <div class="col-6">
+        <h2>Highlighted Logs</h2>
+        <textarea class="log" readonly="" v-model="highlightedLogs"></textarea>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -74,11 +73,9 @@ import BarChart from '../../chart.js';
 // import SummaryTable from './../SummaryTable.vue';
 import {circleOfHealing as spellData} from '../../spells';
 import {mixin} from '../../calculator';
-import {chartoptions} from '../../shared_variables';
+import {oomchartoptions} from '../../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
-
-const NUMBER_OF_TARGETS_HIT = 5;
 
 export default {
   name: 'TimeToOOM',
@@ -89,67 +86,53 @@ export default {
   data() {
     return {
       baseChartData: null,
-      chartoptions: chartoptions,
+      chartoptions: oomchartoptions,
       results: null,
+      chartdata: null,
     };
   },
 
   computed: {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent',
-        'crystalSpire', 'spireProcPercent', 'priestOptions']),
-    spells() {
-      if (!this.baseChartData) return;
-      let _spells = JSON.parse(JSON.stringify(spellData));
-      this.calculateLevelPenalties(_spells['ranks']);
-      this.calculateHealing(_spells['ranks']);
-      return _spells;
-    },
-    chartdata() {
-      if (!this.baseChartData) return;
-      return this.createChartData(JSON.parse(JSON.stringify(this.baseChartData)));
-    },
+        'crystalSpire', 'spireProcPercent', 'oomOptions']),
     logs() {
       if (!this.results || (typeof this.results['logs'] === 'undefined')) return;
       return this.results['logs'].join('\n');
-    }
+    },
+    highlightedLogs() {
+      if (!this.results || (typeof this.results['highlightedLogs'] === 'undefined')) return;
+      return this.results['highlightedLogs'].join('\n');
+    },
   },
   methods: {
-    calculateHealing(spellRanks) {
-      for (let i = 0; i < spellRanks.length; i++) {
-        let spell = spellRanks[i];
-        // spell coefficient is based off original casting time
-        let originalCastTime = spell['castTime'];
-
-        if (this.priestOptions['mentalAgility']) {
-          spell['mana'] *= 0.9;
-        }
-
-        spell['castTime'] /= (1 + this.hastePercent / 100);
-        spell['baseHeal'] = (spell['min'] + spell['max']) / 2
-          * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
-          * (100 - this.overhealPercent) / 100;
-
-        // special formula for aoe coefficient
-        let coefficient = (spell['levelPenalty'] * originalCastTime / 3.5) / 2;
-        spell['bonusHeal'] = (this.healingPower * coefficient)
-          * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
-
-        // crystalSpire can crit, but crit is considered in the calculateAndFormatMetrics function
-        if (this.crystalSpire) {
-          spell['bonusHeal'] += 200 * NUMBER_OF_TARGETS_HIT * this.spireProcPercent / 100
-            * (this.priestOptions['spirtualHealing'] ? 1.1 : 1);
-        }
-        spell['bonusHeal'] *= (100 - this.overhealPercent) / 100;
-
-        this.calculateAndFormatMetrics(spell, this.critChance, true);
-      }
+    drawChart() {
+      this.results = this.calculateTimeOOM({
+        manaCost: this.oomOptions['manaCost'],
+        manaPool: this.oomOptions['manaPool'],
+        cpm: this.oomOptions['cpm'],
+        int: this.oomOptions['int'], 
+        spirit: this.oomOptions['spirit'],
+      });
+      this.chartdata = {
+        type: 'line',
+        datasets: [{
+          label: 'Mana',
+          data: this.results['scatterData'],
+          type: 'line',
+          borderColor: 'green',
+          fill: 'red',
+          pointBorderWidth: 1,
+          pointBorderColor: 'green',
+          pointBackgroundColor: '#fff',
+          pointRadius: 0, 
+          borderWidth: 1,
+          yAxisID: 'A',
+        }]
+      };
     },
   },
   mounted() {
-    this.baseChartData = this.init(spellData);
-    this.results = this.calculateTimeOOM(405, 2);
+    this.setClassName(spellData['class']);
   },
 }
 </script>
