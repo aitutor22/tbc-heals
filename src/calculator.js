@@ -179,7 +179,6 @@ export const mixin = {
       this.addItemToQueue(options, nextEvent.time + castTime, 'HEALING_SPELL_CAST');
     },
     calculateTimeOOM(args) {
-      console.log(args);
       let options = {
         'manaPool': args['manaPool'],
         'manaCost': args['manaCost'],
@@ -212,7 +211,7 @@ export const mixin = {
       this.addItemToQueue(options, 0, 'HEALING_SPELL_CAST');
       this.addItemToQueue(options, 0.1, 'MANA_TICK');
 
-      let inCombatManaTick = this.calculateManaRegenPerTick(args['int'], args['spirit'], 200);
+      let inCombatManaTick = this.calculateManaRegenPerTick(args['int'], args['spirit'], args['otherMP5']);
 
       let nextEvent;
       do {

@@ -10,6 +10,10 @@
       </div>
     </div> -->
     <div class="row">
+      <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
+      <p>Importantly: other MP5 includes gear, oils, BoW, mana spring, etc, <b>BUT DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend</b>. This tool assumes max fight time of 10 mins.</p>
+    </div>
+    <div class="row">
       <div class="col-8">
         <bar-chart
           v-if="chartdata"
@@ -35,6 +39,10 @@
         <div class="input-group mb-2" style="width: 100%">
           <span class="input-group-text" id="basic-addon1">Buffed Spirit</span>
           <input type="text" class="form-control" v-model="oomOptions['spirit']">
+        </div>
+        <div class="input-group mb-2" style="width: 100%">
+          <span class="input-group-text" id="basic-addon1">Other MP5</span>
+          <input type="text" class="form-control" v-model="oomOptions['otherMP5']">
         </div>
 
         <div class="input-group mb-2" style="width: 100%">
@@ -107,11 +115,12 @@ export default {
   methods: {
     drawChart() {
       this.results = this.calculateTimeOOM({
-        manaCost: this.oomOptions['manaCost'],
-        manaPool: this.oomOptions['manaPool'],
-        cpm: this.oomOptions['cpm'],
-        int: this.oomOptions['int'], 
-        spirit: this.oomOptions['spirit'],
+        manaCost: this.convertToNumber(this.oomOptions['manaCost']),
+        manaPool: this.convertToNumber(this.oomOptions['manaPool']),
+        cpm: this.convertToNumber(this.oomOptions['cpm']),
+        int: this.convertToNumber(this.oomOptions['int']), 
+        spirit: this.convertToNumber(this.oomOptions['spirit']),
+        otherMP5: this.convertToNumber(this.oomOptions['otherMP5']),
       });
       this.chartdata = {
         type: 'line',

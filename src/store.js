@@ -21,6 +21,7 @@ export const store = new Vuex.Store({
     oomOptions: {
       cpm: 30,
       manaCost: 405,
+      otherMP5: 200,
       int: 650,
       spirit: 600,
       manaPool: 12000,
