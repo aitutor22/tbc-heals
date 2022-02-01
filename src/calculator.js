@@ -1,4 +1,4 @@
-// import hash from 'object-hash'
+import Heap from 'heap-js';
 
 import {mapMutations} from 'vuex';
 
@@ -60,6 +60,61 @@ export const mixin = {
         return 0
       }
       return (baseBlessingOfLight + (this.paladinOptions['libram'] === 'souls' ? libramSouls : 0)) * levelPenalty;
+    },
+    // status - SPELL_CAST, OOM
+    logHelper(status, timeLastAction, currentMana, totalManaPool) {
+      if (status === 'OOM') {
+        return `Ran out of mana after ${this.roundToTwo(timeLastAction)}s`;
+      } else if (status === 'SPELL_CAST') {
+       return `Casted spell at ${this.roundToTwo(timeLastAction)}s. (${currentMana} / ${totalManaPool})`;
+      }
+    },
+    calculateTimeOOM(manaCost, castTime) {
+      let baseManaPool = 10000;
+      let shadowFiend = 0
+      let totalManaPool = baseManaPool + shadowFiend;
+      let currentMana = totalManaPool;
+      let manaCostPerSec = manaCost / castTime;
+      // evaluate to max of 20 mins
+      let maxTime = 1 * 60;
+
+      const customPriorityComparator = (a, b) => a.time - b.time;
+      const priorityQueue = new Heap(customPriorityComparator);
+
+      // sets up first spellcast event
+      priorityQueue.push({
+        time: 0,
+        type: 'spellcast'
+      });
+
+      let logs = [];
+      let timeLastAction = 0;
+      let nextEvent;
+      do {
+        nextEvent = priorityQueue.pop();
+        if (nextEvent.type === 'spellcast') {
+          if (currentMana < manaCost) {
+            // timeLastAction refers to our previously casted spell as we ran oom then
+            logs.push(this.logHelper('OOM', timeLastAction, currentMana, totalManaPool));
+            break;
+          }
+          // can cast
+          currentMana -= manaCost;
+          timeLastAction = nextEvent.time;
+          // timeLastAction refers to the time we cast the current spell
+          logs.push(this.logHelper('SPELL_CAST', timeLastAction, currentMana, totalManaPool));
+          priorityQueue.push({
+            time: nextEvent.time + castTime,
+            type: 'spellcast'
+          });
+
+        }
+      } while (nextEvent.time < maxTime)
+
+      return {
+        time: totalManaPool / manaCostPerSec,
+        logs: logs,
+      };
     },
     init(spellData) {
       this.setClassName(spellData['class']);

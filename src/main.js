@@ -14,6 +14,9 @@ import Renew from
 import CircleOfHealing from
   './components/priest/CircleOfHealing.vue';
 
+import TimeToOOM from
+  './components/priest/TimeToOOM.vue';
+
 import ChainHeal from
   './components/shaman/ChainHeal.vue';
 
@@ -35,6 +38,7 @@ Vue.use(VueRouter)
 Vue.config.productionTip = false
 
 const routes = [
+  {path: '/priestoom', component: TimeToOOM, name: 'priest-time-to-oom'},
   {path: '/greaterheal', component: GreaterHeal, name: 'greater-heal'},
   {path: '/flashheal', component: FlashHeal, name: 'flash-heal'},
   {path: '/renew', component: Renew, name: 'renew'},
