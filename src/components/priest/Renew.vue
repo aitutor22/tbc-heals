@@ -65,11 +65,11 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
-import BarChart from '../chart.js';
-import SummaryTable from './SummaryTable.vue';
-import {renew as spellData} from '../spells';
-import {mixin} from '../calculator';
-import {chartoptions} from '../shared_variables';
+import BarChart from '../../chart.js';
+import SummaryTable from './../SummaryTable.vue';
+import {renew as spellData} from '../../spells';
+import {mixin} from '../../calculator';
+import {chartoptions} from '../../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 

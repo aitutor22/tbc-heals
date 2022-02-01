@@ -16,9 +16,9 @@
 
     <div class="row">
       <ul class="nav" v-if="className === 'priest'">
-<!--         <li class="nav-item">
-          <router-link :to="{name:'coh'}" class="nav-link">Priest Mana</router-link>
-        </li> -->
+        <li class="nav-item">
+          <router-link :to="{name:'priest-oom'}" class="nav-link">Time to OOM</router-link>
+        </li>
         <li class="nav-item">
           <router-link :to="{name:'coh'}" class="nav-link">Circle of Healing</router-link>
         </li>

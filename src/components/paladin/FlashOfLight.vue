@@ -44,20 +44,12 @@
           <label class="form-check-label" for="holyLight">Healing Light</label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="lightGrace" v-model="paladinOptions['lightGrace']">
-          <label class="form-check-label" for="lightGrace">Light's Grace</label>
-        </div>
-        <div class="form-check">
           <input class="form-check-input" type="checkbox" id="illumination" v-model="paladinOptions['illumination']">
           <label class="form-check-label" for="illumination">Illumination</label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="sanctifiedLight" v-model="paladinOptions['sanctifiedLight']">
-          <label class="form-check-label" for="sanctifiedLight">Sanctified Light</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="2pT6" v-model="paladinOptions['2pT6']">
-          <label class="form-check-label" for="2pT6">2px T6</label>
+          <input class="form-check-input" type="checkbox" id="4pT6" v-model="paladinOptions['4pT6']">
+          <label class="form-check-label" for="4pT6">4px T6</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="blessingLight" v-model="paladinOptions['blessingLight']">
@@ -73,15 +65,9 @@
           </label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="lightbringer" value="lightbringer" v-model="paladinOptions['libram']">
-          <label class="form-check-label" for="lightbringer">
-            Lightbringer
-          </label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="truth" value="truth" v-model="paladinOptions['libram']">
-          <label class="form-check-label" for="truth">
-            Absolute Truth
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="light" value="light" v-model="paladinOptions['libram']">
+          <label class="form-check-label" for="light">
+            Light
           </label>
         </div>
         <div class="form-check form-check-inline">
@@ -99,17 +85,16 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
-import {mapMutations} from 'vuex';
-import BarChart from '../chart.js';
-import SummaryTable from './SummaryTable.vue';
-import {holyLight as spellData} from '../spells';
-import {mixin} from '../calculator';
-import {chartoptions} from '../shared_variables';
+import BarChart from '../../chart.js';
+import SummaryTable from './../SummaryTable.vue';
+import {flashOfLight as spellData} from '../../spells';
+import {mixin} from '../../calculator';
+import {chartoptions} from '../../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 // note that HW rank 10 and below calculations differ from egregious as our level penalty formula is slightly different
 export default {
-  name: 'HolyLight',
+  name: 'FlashOfLight',
   components: {BarChart, SummaryTable},
   props: {
   },
@@ -128,7 +113,6 @@ export default {
       let _spells = JSON.parse(JSON.stringify(spellData));
       this.calculateLevelPenalties(_spells['ranks']);
       this.calculateHealing(_spells['ranks']);
-      // console.log(_spells)
       return _spells;
     },
     chartdata() {
@@ -137,41 +121,35 @@ export default {
     },
   },
   methods: {
-    ...mapMutations(['setBlessingLight']),
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
         // spell coefficient is based off original casting time
         let originalCastTime = spell['castTime'];
         let originalManaCost = spell['mana'];
-        let modifiedCritChance = this.convertToNumber(this.critChance)
-          + (this.paladinOptions['sanctifiedLight'] ? 6 : 0)
-          + (this.paladinOptions['2pT6'] ? 5 : 0);
-
-        if (this.paladinOptions['lightGrace']) {
-          spell['castTime'] -= 0.5;
-        }
+        let modifiedCritChance = this.convertToNumber(this.critChance);
 
         if (this.paladinOptions['illumination']) {
+          // spell['mana'] = modifiedCritChance / 100 * originalManaCost * 0.4 + (100 - modifiedCritChance) / 100 * spell['mana'];
+          // if there is a crit, spell only cost 40%
           // the way illumination works is a bit weird, got this formula from currelius who has tested it extensively
-          spell['mana'] = originalManaCost * (100 - (modifiedCritChance * 0.6)) / 100 - (this.paladinOptions['libram'] === 'truth' ? 34: 0);
-        } else {
-          spell['mana'] = originalManaCost - (this.paladinOptions['libram'] === 'truth' ? 34: 0);
+          spell['mana'] = originalManaCost * (100 - (modifiedCritChance * 0.6)) / 100;
         }
 
         spell['castTime'] /= (1 + this.hastePercent / 100);
-        spell['baseHeal'] = (spell['min'] + spell['max']) / 2 * (this.paladinOptions['holyLight'] ? 1.12 : 1)
+        spell['baseHeal'] = (spell['min'] + spell['max']) / 2
+          * (this.paladinOptions['holyLight'] ? 1.12 : 1)
+          * (this.paladinOptions['4pT6'] ? 1.05 : 1)
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
-        
-
-        let blessingLightHealBonus = this.calculateBlessingOfLightBonus(true, spell['levelPenalty']);
+        let blessingLightHealBonus = this.calculateBlessingOfLightBonus(false, spell['levelPenalty']);
         // need to convertToNumber to prevent bugs where javascript uses string addition
         spell['bonusHeal'] = ((this.convertToNumber(this.healingPower)
-          + (this.paladinOptions['libram'] === 'lightbringer' ? 87 : 0))
+            + (this.paladinOptions['libram'] === 'light' ? 83 : 0))
           * coefficient + blessingLightHealBonus)
           * (this.paladinOptions['holyLight'] ? 1.12 : 1)
+          * (this.paladinOptions['4pT6'] ? 1.05 : 1)
           * (100 - this.overhealPercent) / 100;
 
         this.calculateAndFormatMetrics(spell, modifiedCritChance, false);

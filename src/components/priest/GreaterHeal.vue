@@ -40,24 +40,34 @@
         </div>
 
         <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="improvedHealing" v-model="priestOptions['improvedHealing']">
+          <label class="form-check-label" for="improvedHealing">Improved Healing</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="divineFury" v-model="priestOptions['divineFury']">
+          <label class="form-check-label" for="divineFury">Divine Fury</label>
+        </div>
+        <div class="form-check">
           <input class="form-check-input" type="checkbox" id="spirtualHealing" v-model="priestOptions['spirtualHealing']">
           <label class="form-check-label" for="spirtualHealing">Spirtual Healing</label>
         </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="empoweredHealing" v-model="priestOptions['empoweredHealing']">
+          <label class="form-check-label" for="empoweredHealing">Empowered Healing</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="holyConcentration" v-model="priestOptions['holyConcentration']">
+          <label class="form-check-label" for="holyConcentration">Holy Concentration</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="2pT5" v-model="priestOptions['2pT5']">
+          <label class="form-check-label" for="2pT5">2px T5</label>
+        </div>
 
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="mentalAgility" v-model="priestOptions['mentalAgility']">
-          <label class="form-check-label" for="mentalAgility">Mental Agility</label>
+          <input class="form-check-input" type="checkbox" id="4pT6" v-model="priestOptions['4pT6']">
+          <label class="form-check-label" for="4pT6">4px T6</label>
         </div>
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="crystalSpire" v-model="crystalSpire">
-          <label class="form-check-label" for="crystalSpire">Crystal Spire of Karabor</label>
-        </div>
-        <div class="input-group mb-2" style="width: 50%" v-if="crystalSpire">
-          <span class="input-group-text" id="basic-addon1">Spire Proc %</span>
-          <input type="text" class="form-control" v-model="spireProcPercent">
-        </div>
-
       </div>
     </div>
 
@@ -67,18 +77,16 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
-import BarChart from '../chart.js';
-import SummaryTable from './SummaryTable.vue';
-import {circleOfHealing as spellData} from '../spells';
-import {mixin} from '../calculator';
-import {chartoptions} from '../shared_variables';
+import BarChart from '../../chart.js';
+import SummaryTable from './../SummaryTable.vue';
+import {greaterHeal as spellData} from '../../spells';
+import {mixin} from '../../calculator';
+import {chartoptions} from '../../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 
-const NUMBER_OF_TARGETS_HIT = 5;
-
 export default {
-  name: 'CircleOfHealing',
+  name: 'GreaterHeal',
   components: {BarChart, SummaryTable},
   props: {
   },
@@ -91,8 +99,7 @@ export default {
   },
 
   computed: {
-    ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent',
-        'crystalSpire', 'spireProcPercent', 'priestOptions']),
+    ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'priestOptions']),
     spells() {
       if (!this.baseChartData) return;
       let _spells = JSON.parse(JSON.stringify(spellData));
@@ -112,28 +119,35 @@ export default {
         // spell coefficient is based off original casting time
         let originalCastTime = spell['castTime'];
 
-        if (this.priestOptions['mentalAgility']) {
-          spell['mana'] *= 0.9;
+        if (this.priestOptions['improvedHealing']) {
+          spell['mana'] *= 0.85;
+        }
+
+        if (this.priestOptions['holyConcentration']) {
+          spell['mana'] *= (1 - 0.06);
+        }
+
+        if (this.priestOptions['2pT5']) {
+          spell['mana'] -= 100;
+        }
+
+        if (this.priestOptions['divineFury']) {
+          spell['castTime'] = 2.5;
         }
 
         spell['castTime'] /= (1 + this.hastePercent / 100);
-        spell['baseHeal'] = (spell['min'] + spell['max']) / 2
-          * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
+        spell['baseHeal'] = (spell['min'] + spell['max']) / 2 * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
+          * (this.priestOptions['4pT6'] ? 1.05 : 1)
           * (100 - this.overhealPercent) / 100;
-
-        // special formula for aoe coefficient
-        let coefficient = (spell['levelPenalty'] * originalCastTime / 3.5) / 2;
+        let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
+        // this can be quite confusing but basically, empowered healing needs to be discounted by level penalty
+        // if levelPenalty < 1
+        // https://tbc.wowhead.com/guides/priest-healer-stat-priority-burning-crusade-classic
+        coefficient += (this.priestOptions['empoweredHealing'] ? 0.2 * spell['levelPenalty']: 0);
         spell['bonusHeal'] = (this.healingPower * coefficient)
           * (this.priestOptions['spirtualHealing'] ? 1.1 : 1)
-          * NUMBER_OF_TARGETS_HIT
-
-        // crystalSpire can crit, but crit is considered in the calculateAndFormatMetrics function
-        if (this.crystalSpire) {
-          spell['bonusHeal'] += 200 * NUMBER_OF_TARGETS_HIT * this.spireProcPercent / 100
-            * (this.priestOptions['spirtualHealing'] ? 1.1 : 1);
-        }
-        spell['bonusHeal'] *= (100 - this.overhealPercent) / 100;
+          * (this.priestOptions['4pT6'] ? 1.05 : 1)
+          * (100 - this.overhealPercent) / 100;
 
         this.calculateAndFormatMetrics(spell, this.critChance, true);
       }

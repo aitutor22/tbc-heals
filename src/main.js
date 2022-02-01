@@ -3,31 +3,31 @@ import App from './App.vue'
 import VueRouter from 'vue-router'
 
 import GreaterHeal from
-  './components/GreaterHeal.vue';
+  './components/priest/GreaterHeal.vue';
 
 import FlashHeal from
-  './components/FlashHeal.vue';
+  './components/priest/FlashHeal.vue';
 
 import Renew from
-  './components/Renew.vue';
+  './components/priest/Renew.vue';
 
 import CircleOfHealing from
-  './components/CircleOfHealing.vue';
+  './components/priest/CircleOfHealing.vue';
 
 import ChainHeal from
-  './components/ChainHeal.vue';
+  './components/shaman/ChainHeal.vue';
 
 import HealingWave from
-  './components/HealingWave.vue';
+  './components/shaman/HealingWave.vue';
 
 import LesserHealingWave from
-  './components/LesserHealingWave.vue';
+  './components/shaman/LesserHealingWave.vue';
 
 import HolyLight from
-  './components/HolyLight.vue';
+  './components/paladin/HolyLight.vue';
 
 import FlashOfLight from
-  './components/FlashOfLight.vue';
+  './components/paladin/FlashOfLight.vue';
 
 import {store} from './store';
 
