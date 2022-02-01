@@ -149,7 +149,7 @@ export default {
   },
   mounted() {
     this.baseChartData = this.init(spellData);
-    this.results = this.calculateTimeOOM(405, 1.5);
+    this.results = this.calculateTimeOOM(405, 2);
   },
 }
 </script>
