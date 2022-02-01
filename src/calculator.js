@@ -92,19 +92,21 @@ export const mixin = {
     // status - HEALING_SPELL_CAST, OOM
     logHelper(status, time, options) {
       let currentMana = options['currentMana'],
-        manaPool = options['manaPool'];
+        manaPool = options['manaPool'],
+        msg = '';
 
       if (status === 'OOM') {
-        return `Ran out of mana after ${this.roundToTwo(time)}s`;
+        msg = `Ran out of mana after ${this.roundToTwo(time)}s`;
       } else if (status === 'HEALING_SPELL_CAST') {
-       return `Casted healing spell at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+       msg = `Casted healing spell at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'MANA_TICK') {
-        return `Mana tick at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+        msg = `Mana tick at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'SHADOWFIEND_MANA_TICK') {
-        return `Shadowfiend attacked at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+        msg = `Shadowfiend attacked at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'SUPER_MANA_POTION' || status === 'DARK_RUNE' || status === 'SHADOWFIEND') {
-        return `Used ${status} at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+        msg = `Used ${status} at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       }
+      if (msg !== '') options['logs'].push(msg);
     },
     // bunch of magic numbers here, refactor in future
     // returns [boolean_indiciating_if_consume_used, mana_regen, message]
@@ -122,12 +124,12 @@ export const mixin = {
           // if we do use a consume, we return as we should only use one consume at a time
           options['consumesOffCD'][key] = time + CONSUMES[key]['cooldown'];
           if (key !== 'SHADOWFIEND') {
-            options['currentMana'] += CONSUMES[key]['value'];  
+            this.changeMana(options, CONSUMES[key]['value'], key);
           } else {
             this.addItemToQueue(options, time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
             options['shadowfiendTicks'] = 0;
           }
-          options['logs'].push(this.logHelper(key, time, options));
+          this.logHelper(key, time, options);
           return key;
         }
       }
@@ -139,7 +141,15 @@ export const mixin = {
         type: type,
       });
     },
-    healingSpellCastHelper(options, nextEvent, manaCost, castTime, logs) {
+    // use this to track mana changes
+    changeMana(options, value, type) {
+      if (typeof options['manaSummary'][type] === 'undefined') options['manaSummary'][type] = 0;
+      options['currentMana'] += value;
+      // cannot exceed max mana
+      if (options['currentMana'] > options['manaPool']) options['currentMana'] = options['manaPool'];
+      options['manaSummary'][type] += value;
+    },
+    healingSpellCastHelper(options, nextEvent, manaCost, castTime) {
       // assume that mana potion can only be used before a spell cast
       // we first check for consume usage
       let consumeResults = this.consumeHelper(nextEvent.time, options);
@@ -152,15 +162,15 @@ export const mixin = {
 
       if (options['currentMana'] < manaCost) {
         // timeLastAction refers to our previously casted spell as we ran oom then
-        logs.push(this.logHelper('OOM', options['timeLastAction'], options));
+        this.logHelper('OOM', options['timeLastAction'], options);
         options['status'] = 'ended'
         return;
       }
       // can cast
-      options['currentMana'] -= manaCost;
+      this.changeMana(options, -manaCost, 'HEALING_SPELL_CAST');
       options['timeLastAction'] = nextEvent.time;
       // timeLastAction refers to the time we cast the current spell
-      logs.push(this.logHelper('HEALING_SPELL_CAST', options['timeLastAction'], options));
+      this.logHelper('HEALING_SPELL_CAST', options['timeLastAction'], options);
       // adding next spellcast (based on cast time)
       this.addItemToQueue(options, nextEvent.time + castTime, 'HEALING_SPELL_CAST');
     },
@@ -181,6 +191,8 @@ export const mixin = {
         // can either be on-going or ended
         'status': 'ongoing',
         'logs': [],
+        'manaSummary': {},
+        'datapoints': {x: [], y: []}
       }
       options['currentMana'] = options['manaPool'];
       options['shadowfiendHealingPerTick'] = options['shadowfiendHealing'] / 10;
@@ -200,22 +212,27 @@ export const mixin = {
           this.healingSpellCastHelper(options, nextEvent, manaCost, castTime, options['logs']);
         }
         else if (nextEvent.type === 'MANA_TICK') {
-          options['currentMana'] += inCombatManaTick;
-          options['logs'].push(this.logHelper('MANA_TICK', nextEvent.time, options));
+          this.changeMana(options, inCombatManaTick, 'MANA_TICK');
+          this.logHelper('MANA_TICK', nextEvent.time, options);
           // adding next mana tick (based on 2s tick timer)
           this.addItemToQueue(options, nextEvent.time + 2, 'MANA_TICK');
         } else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
           options['shadowfiendTicks']++;
-          options['currentMana'] += options['shadowfiendHealingPerTick']; 
-          options['logs'].push(this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options));
+          this.changeMana(options, options['shadowfiendHealingPerTick'], 'SHADOWFIEND_MANA_TICK');
+          this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options);
           // once we readch 10 ticks, means shadowfiend has finished
           if (options['shadowfiendTicks'] < 10) {
             this.addItemToQueue(options, nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
           }
         }
+
+        options['datapoints']['x'].push(nextEvent.time);
+        options['datapoints']['y'].push(options['currentMana']);
       } while (nextEvent.time < options['maxTime'] && options['status'] === 'ongoing')
 
       console.log(options['consumesOffCD']);
+      console.log(options['manaSummary']);
+      console.log(options['datapoints']);
       return {
         // time: manaPool / manaCostPerSec,
         logs: options['logs'],
