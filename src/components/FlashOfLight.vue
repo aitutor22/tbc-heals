@@ -143,7 +143,6 @@ export default {
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
-
         let blessingLightHealBonus = this.calculateBlessingOfLightBonus(false, spell['levelPenalty']);
         // need to convertToNumber to prevent bugs where javascript uses string addition
         spell['bonusHeal'] = ((this.convertToNumber(this.healingPower)
@@ -158,7 +157,7 @@ export default {
     },
   },
   mounted() {
-    this.baseChartData = this.createEmptyChartData(spellData);
+    this.baseChartData = this.init(spellData);
   },
 }
 </script>

@@ -149,7 +149,7 @@ export default {
     },
   },
   mounted() {
-    this.baseChartData = this.createEmptyChartData(spellData);
+    this.baseChartData = this.init(spellData);
   },
 }
 </script>

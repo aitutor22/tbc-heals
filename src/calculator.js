@@ -1,8 +1,11 @@
 // import hash from 'object-hash'
 
+import {mapMutations} from 'vuex';
+
 export const mixin = {
   computed: {},
   methods: {
+    ...mapMutations(['setClassName']),
     roundToTwo(num) {    
       return +(Math.round(num + "e+2")  + "e-2");
     },
@@ -58,7 +61,8 @@ export const mixin = {
       }
       return (baseBlessingOfLight + (this.paladinOptions['libram'] === 'souls' ? libramSouls : 0)) * levelPenalty;
     },
-    createEmptyChartData(spellData) {
+    init(spellData) {
+      this.setClassName(spellData['class']);
       // let numRanks = spellRanks.length;
       let baseChartData = {
         labels: spellData['ranks'].map(spell => `Rank ${spell['rank']}`),
@@ -68,7 +72,7 @@ export const mixin = {
     },
     createChartData(chartData) {
       chartData['datasets'].push({
-        label: 'hps',
+        label: 'HPS',
         data: this.spells['ranks'].map(spell => spell['hps']),
         type: 'line',
         borderColor: 'green',
@@ -81,7 +85,7 @@ export const mixin = {
       });
 
       chartData['datasets'].push({
-        label: 'efficiency',
+        label: 'Efficiency',
         data: this.spells['ranks'].map(spell => spell['efficiency']),
         type: 'line',
         borderColor: 'blue',
@@ -97,12 +101,14 @@ export const mixin = {
         label: 'Base',
         data: this.spells['ranks'].map(spell => spell['baseHeal']),
         backgroundColor: '#8884d8',
+        stack: 'bar-stacked',
       });
 
       chartData['datasets'].push({
         label: 'Bonus',
         data: this.spells['ranks'].map(spell => spell['bonusHeal']),
         backgroundColor: '#82ca9d',
+        stack: 'bar-stacked',
       });
 
       if (typeof this.spells['ranks'][0]['critHeal'] !== 'undefined') {
@@ -110,6 +116,7 @@ export const mixin = {
           label: 'Crit',
           data: this.spells['ranks'].map(spell => spell['critHeal']),
           backgroundColor: '#ffc658',
+          stack: 'bar-stacked',
         });
       }
 

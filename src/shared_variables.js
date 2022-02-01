@@ -9,7 +9,7 @@ export const chartoptions = {
   },
   scales: {
       yAxes: [{
-        stacked: true,
+        // stacked: true,
         ticks: {
           beginAtZero: true,
         },

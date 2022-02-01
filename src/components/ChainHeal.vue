@@ -91,12 +91,12 @@
             Others
           </label>
         </div>
-        <div>
+<!--         <div>
           <button>Share Link</button>
           <br>
           <input type="text" name="" :value="paramsState">
           <button @click="copyToClipboard">Copy</button>
-        </div>
+        </div> -->
       </div>
     </div>
 
@@ -146,14 +146,6 @@ export default {
     },
   },
   methods: {
-    async copyToClipboard() {
-      try {
-        await navigator.clipboard.writeText(this.paramsState);
-        alert('Copied');
-      } catch($e) {
-        alert('Cannot copy');
-      }
-    },
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
@@ -204,7 +196,7 @@ export default {
     },
   },
   mounted() {
-    this.baseChartData = this.createEmptyChartData(spellData);
+    this.baseChartData = this.init(spellData);
   },
 }
 </script>

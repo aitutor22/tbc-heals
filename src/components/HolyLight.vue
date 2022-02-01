@@ -153,7 +153,6 @@ export default {
         }
 
         if (this.paladinOptions['illumination']) {
-          // if there is a crit, spell only cost 40%
           // the way illumination works is a bit weird, got this formula from currelius who has tested it extensively
           spell['mana'] = originalManaCost * (100 - (modifiedCritChance * 0.6)) / 100 - (this.paladinOptions['libram'] === 'truth' ? 34: 0);
         } else {
@@ -180,7 +179,7 @@ export default {
     },
   },
   mounted() {
-    this.baseChartData = this.createEmptyChartData(spellData);
+    this.baseChartData = this.init(spellData);
   },
 }
 </script>

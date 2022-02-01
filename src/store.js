@@ -10,6 +10,7 @@ Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   state: {
+    className: 'shaman',
     healingPower: 2200,
     // note we use 15 rather than 0.15
     critChance: 15,
@@ -76,5 +77,8 @@ export const store = new Vuex.Store({
     // Add the `updateField` mutation to the
     // `mutations` of your Vuex store instance.
     updateField,
+    setClassName(state, value) {
+      Vue.set(this.state, 'className', value);
+    },
   },
 });
