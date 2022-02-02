@@ -198,7 +198,7 @@ export const mixin = {
           deficitToUse = options['manaPool'] * 0.24;
         }
 
-        if (time >= options['consumesOffCD'][key] && manaDeficit > deficitToUse) {
+        if (time >= options['consumesOffCD'][key] && (manaDeficit > deficitToUse || options['currentMana'] <= options['THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT'])) {
           // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
           let haveUsedPreviousConsumes = CONSUMES[key]['waitForInitialUses'].map(i => options['consumesOffCD'][i] > 0);
           if (haveUsedPreviousConsumes.length > 0 && haveUsedPreviousConsumes.indexOf(false) > -1) {
@@ -286,6 +286,9 @@ export const mixin = {
           'SHADOWFIEND': 0,
           'MANA_TIDE_TOTEM': 0,
         },
+        // this is to avoid situations where a player's mana pool is 12k, and inputted shadowfiend is 12k
+        // and shadowfiend will never be used since mana_deficit will always be lesser than 12k
+        'THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT': 1000,
         // can either be on-going or ended
         'status': 'ongoing',
         'logs': [],
