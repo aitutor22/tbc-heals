@@ -85,6 +85,9 @@ export const mixin = {
       }
       return (baseBlessingOfLight + (this.paladinOptions['libram'] === 'souls' ? libramSouls : 0)) * levelPenalty;
     },
+    calculateTotalManaPool(args){
+      return Math.floor((2340 + this.calculateTotalInt(args) * 15) * (args['mentalStrength'] ? 1.1 : 1));
+    },
     // we assume everyone has AI, MOTW, draenic wisdom and kings
     // user selected stuff are kreegs
     calculateTotalInt(args) {
@@ -93,7 +96,12 @@ export const mixin = {
       // MoTW - 19
       // Kreegs - -5
       // Kings - +10%
-      return (args['int'] + 40 + 30 + 19 + (args['kreegs'] ? -5 : 0)) * 1.1;
+      // Enlightenment - +5%
+
+      return Math.floor(
+        (args['int'] + 40 + 30 + 19 + (args['kreegs'] ? -5 : 0))
+        * 1.1 * (args['enlightenment'] ? 1.05 : 1)
+      );
     },
     // we assume everyone has MOTW, food buff, draenic wisdom and kings
     // user selected stuff are kreegs
@@ -107,6 +115,7 @@ export const mixin = {
       // Spirit of Redemption - +5%
       // Kings - +10%
       // Human Racial - +10%
+      // Enlightenment - +5%
       let idsSpirit = 0,
         otherSpirit = 0;
       if (args['idsScroll'] === 'ids') {
@@ -116,9 +125,9 @@ export const mixin = {
       }
 
       otherSpirit = (args['kreegs'] ? 25 : 0) + idsSpirit;
-      return (args['spirit'] + 19 + 30 + 20 + otherSpirit)
-        * 1.05 * 1.1
-        * (args['isHuman'] ? 1.1 : 1);
+      return Math.floor((args['spirit'] + 19 + 30 + 20 + otherSpirit)
+        * 1.05 * 1.1 * (args['enlightenment'] ? 1.05 : 1)
+        * (args['isHuman'] ? 1.1 : 1));
     },
     calculateTotalOtherMp5(args, castTime) {
       // Brilliant Mana Oil - 12
@@ -176,8 +185,13 @@ export const mixin = {
         if (key === 'MANA_TIDE_TOTEM' && !options['playerSelectedManaTide']) return;
 
         let deficitToUse;
+        // alchemist stone increases mana regen from super mana potions by 40%
+        let alchemistStoneScalingFactor = (key === 'SUPER_MANA_POTION' && options['alchemistStone']) ?
+            1.4 : 1;
+
         if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
-          deficitToUse = CONSUMES[key]['value'];
+          // note: dark runes aren't affected by alchemist stone
+          deficitToUse = CONSUMES[key]['value'] * alchemistStoneScalingFactor;
         } else if (key === 'SHADOWFIEND') {
           deficitToUse = options['shadowfiendHealing'];
         } else if (key === 'MANA_TIDE_TOTEM') {
@@ -194,7 +208,7 @@ export const mixin = {
           // if we do use a consume, we return as we should only use one consume at a time
           options['consumesOffCD'][key] = time + CONSUMES[key]['cooldown'];
           if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
-            this.changeMana(options, CONSUMES[key]['value'], key);
+            this.changeMana(options, CONSUMES[key]['value'] * alchemistStoneScalingFactor, key);
           } else if (key === 'SHADOWFIEND') {
             this.addItemToQueue(options, time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
             this.shadowFiendActive = true;
@@ -252,7 +266,6 @@ export const mixin = {
     },
     calculateTimeOOM(args) {
       let options = {
-        'manaPool': args['manaPool'],
         'manaCost': args['manaCost'],
         'shadowfiendHealing': args['shadowfiendMana'],
         'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
@@ -264,6 +277,7 @@ export const mixin = {
         'manaTideTotemActive': false,
         'manaTideTotemTicks': 0,
         'maxTime': 10 * 60, // in seconds,
+        'alchemistStone': args['alchemistStone'],
         'GCD': 1.5,
         'timeLastAction': 0,
         'consumesOffCD': {
@@ -285,12 +299,13 @@ export const mixin = {
         buffedSpirit = this.calculateTotalSpirit(args),
         otherMP5 = this.calculateTotalOtherMp5(args, castTime);
 
+      options['manaPool'] = this.calculateTotalManaPool(args);
+
       let inCombatManaTick = this.calculateManaRegenPerTick(buffedInt, buffedSpirit, otherMP5);
       options['currentMana'] = options['manaPool'];
       options['shadowfiendHealingPerTick'] = options['shadowfiendHealing'] / 10;
       options['manaTideTotemManaPerTick'] = options['manaPool'] * 0.24 / 4;
 
-      // console.log(args['int'], );
       const customPriorityComparator = (a, b) => a.time - b.time;
       options['priorityQueue'] = new Heap(customPriorityComparator);
 
@@ -351,6 +366,7 @@ export const mixin = {
         logs: options['logs'],
         highlightedLogs: options['highlightedLogs'],
         manaSummary: options['manaSummary'],
+        manaPool: Math.floor(options['manaPool']),
         statsSummary: {
           'buffedInt': Math.floor(buffedInt),
           'buffedSpirit': Math.floor(buffedSpirit),

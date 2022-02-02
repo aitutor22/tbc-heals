@@ -11,6 +11,9 @@
         <li class="nav-item">
           <a class="nav-link" :class="{active: className === 'paladin'}" href="#" @click="select('paladin')">Paladin</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://zak-lambert.github.io/tbc-sim/#/spell">Druid (by Xaddie)</a>
+        </li>
       </ul>
     </div>
 

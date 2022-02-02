@@ -3,9 +3,13 @@
     <div class="row" v-if="showExplanation">
       <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
       <p>
-        The tool assumes you always have MoTW, Arcane Intellect, Blessing of Kings, Spirit of Redemption, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil. 
+        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Spirit of Redemption, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil. Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM.
       </p>
-      <p>"Other MP5" includes regen from gear and sources like Shadow Priest that are not included in the options below. <b> DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
+      <p>"Other MP5" includes regen from gear and trinkets and <b> DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
+
+      <p>
+        Special thanks to Bael for providing valuable feedback on features and options.
+      </p>
     </div>
     <div class="row">
       <div class="col-12">
@@ -45,12 +49,16 @@
 
       <div class="col-4">
         <div class="input-group mb-2" style="width: 100%">
-          <span class="input-group-text" id="basic-addon1">Mana Pool</span>
-          <input type="text" class="form-control" v-model="oomOptions['manaPool']">
-        </div>
-        <div class="input-group mb-2" style="width: 100%">
           <span class="input-group-text" id="basic-addon1">Mana from Shadowfiend</span>
           <input type="text" class="form-control" v-model="oomOptions['shadowfiendMana']">
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="mentalStrength" v-model="oomOptions['mentalStrength']">
+          <label class="form-check-label" for="mentalStrength">Mental Strength (<b>DISC TALENT</b>)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="enlightenment" v-model="oomOptions['enlightenment']">
+          <label class="form-check-label" for="enlightenment">Englightenment (<b>DISC TALENT</b>)</label>
         </div>
         <!-- spirit -->
         <div class="form-check">
@@ -117,13 +125,20 @@
           <span class="input-group-text" id="basic-addon1">Shadow Priest DPS</span>
           <input type="text" class="form-control" v-model="oomOptions['shadowPriestDPS']">
         </div>
+        <br>
+        <h6>Trinkets</h6>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="alchemistStone" v-model="oomOptions['alchemistStone']">
+          <label class="form-check-label" for="alchemistStone">Alchemist Stone</label>
+        </div>
       </div>
     </div>
 
-    <div class="row results" v-if="results">
+    <div class="row slight-offset-top" v-if="results">
       <h2>Results</h2>
       <ul>
-        <li>Time to oom: <b>{{ results['timeToOOM'] }}s</b></li>
+        <li>Time to OOM: <b>{{ results['timeToOOM'] }}s</b></li>
+        <li>Mana Pool: <b>{{ results['manaPool'] }}</b></li>
         <li>Buffed Int: <b>{{ results['statsSummary']['buffedInt'] }}</b></li>
         <li>Buffed Spirit: <b>{{ results['statsSummary']['buffedSpirit'] }}</b></li>
         <li>Total Other MP5: <b>{{ results['statsSummary']['totalOtherMP5'] }}</b></li>
@@ -146,6 +161,12 @@
         <h2>Highlighted Logs</h2>
         <textarea class="log" readonly="" v-model="highlightedLogs"></textarea>
       </div>
+    </div>
+    <div class="row slight-offset-top" v-if="results">
+      <h3>Known Issues</h3>
+      <ul>
+        <li>When mana tide totem is used, it will override mana spring, which should cause a temporary slight dip in mana regen. This is not accounted for.</li>
+      </ul>
     </div>
   </div>
 </template>
@@ -192,12 +213,13 @@ export default {
       this.showExplanation = false;
       this.results = this.calculateTimeOOM({
         manaCost: this.convertToNumber(this.oomOptions['manaCost']),
-        manaPool: this.convertToNumber(this.oomOptions['manaPool']),
         cpm: this.convertToNumber(this.oomOptions['cpm']),
         int: this.convertToNumber(this.oomOptions['int']), 
         spirit: this.convertToNumber(this.oomOptions['spirit']),
         otherMP5: this.convertToNumber(this.oomOptions['otherMP5']),
         shadowfiendMana: this.convertToNumber(this.oomOptions['shadowfiendMana']),
+        mentalStrength: this.oomOptions['mentalStrength'],
+        enlightenment: this.oomOptions['enlightenment'],
         kreegs: this.oomOptions['kreegs'],
         isHuman: this.oomOptions['isHuman'],
         idsScroll: this.oomOptions['idsScroll'],
@@ -207,6 +229,7 @@ export default {
         bow: this.oomOptions['bow'],
         snowballMP5: !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']),
         shadowPriestDPS: !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']),
+        alchemistStone: this.oomOptions['alchemistStone'],
       });
 
       this.chartdata = {
@@ -239,7 +262,7 @@ export default {
   width: 100%;
   height: 400px
 }
-.results {
+.slight-offset-top {
   margin-top: 20px;
 }
 </style>

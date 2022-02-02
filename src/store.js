@@ -20,13 +20,15 @@ export const store = new Vuex.Store({
     spireProcPercent: 10,
     oomOptions: {
       cpm: 30,
-      manaCost: 405,
+      // based off 90% R12/CoH + 10% PoM
+      manaCost: 393,
       // gear-based mp5 + other sources like shadowpirest
       otherMP5: 75,
       int: 500,
       spirit: 400,
-      manaPool: 12000,
       shadowfiendMana: 7000,
+      mentalStrength: false,
+      enlightenment: false,
       kreegs: false,
       isHuman: false,
       idsScroll: 'none',
@@ -43,6 +45,7 @@ export const store = new Vuex.Store({
       mtt: false,
       hasShadowPriest: false,
       shadowPriestDPS: 1000,
+      alchemistStone: false,
     },
     shamanOptions: {
       // used for all healing spells
