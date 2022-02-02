@@ -4,20 +4,17 @@ import {mapMutations} from 'vuex';
 
 const CONSUMES = {
   'SUPER_MANA_POTION': {
-    deficitToUse: 2400,
     value: 2400,
     cooldown: 120,
     waitForInitialUses: [],
   },
   'DARK_RUNE': {
-    deficitToUse: 1200,
     value: 1200,
     cooldown: 120,
     // requires super mana potion to be used once first
     waitForInitialUses: ['SUPER_MANA_POTION'],
   },
   'SHADOWFIEND': {
-    deficitToUse: 7000,
     value: 0,
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE'],
@@ -83,6 +80,52 @@ export const mixin = {
       }
       return (baseBlessingOfLight + (this.paladinOptions['libram'] === 'souls' ? libramSouls : 0)) * levelPenalty;
     },
+    // we assume everyone has AI, MOTW, draenic wisdom and kings
+    // user selected stuff are kreegs
+    calculateTotalInt(args) {
+      // Arcane Intellect - 40
+      // Draenic Wisdom - 30
+      // MoTW - 19
+      // Kreegs - -5
+      // Kings - +10%
+      return (args['int'] + 40 + 30 + 19 + (args['kreegs'] ? -5 : 0)) * 1.1;
+    },
+    // we assume everyone has MOTW, food buff, draenic wisdom and kings
+    // user selected stuff are kreegs
+    calculateTotalSpirit(args) {
+      // MoTW - 19
+      // Draenic Wisdom - 30
+      // Food Buff - 20
+      // Scroll - 30
+      // IDS - 50
+      // Kreegs - 25
+      // Spirit of Redemption - +5%
+      // Kings - +10%
+      // Human Racial - +10%
+      let idsSpirit = 0,
+        otherSpirit = 0;
+      if (args['idsScroll'] === 'ids') {
+        idsSpirit = 50;
+      } else if (args['idsScroll'] === 'scroll') {
+        idsSpirit = 30;
+      }
+
+      otherSpirit = (args['kreegs'] ? 25 : 0) + idsSpirit;
+      return (args['spirit'] + 19 + 30 + 20 + otherSpirit)
+        * 1.05 * 1.1
+        * (args['isHuman'] ? 1.1 : 1);
+    },
+    calculateTotalOtherMp5(args, castTime) {
+      // Brilliant Mana Oil - 12
+      // Imp BoW - 49.2
+      // Mana Spring - 50 * 1.25 (after talents)
+      // IED - 5% proc rate to return 300, 15s icd
+      // formula for IED is 15 + 20 * castTime
+
+      return args['otherMP5'] + (args['mst'] ? 50 * 1.25: 0) + (args['bow'] ? 49.2: 0)
+        + (args['ied'] ? 300 / (15 + 20 * castTime) * 5 : 0)
+        + args['snowballMP5'] + 12;
+    },
     // for priest, int/spirit are buffed numbers. other_mp5 refers to gear based mp5, BoW, food (but exclude mana pots and dark runes)
     // returns mp2
     calculateManaRegenPerTick(int, spirit, other_mp5=0) {
@@ -117,7 +160,10 @@ export const mixin = {
       let manaDeficit = options['manaPool'] - options['currentMana'];
 
       for (let key in CONSUMES) {
-        if (time >= options['consumesOffCD'][key] && manaDeficit > CONSUMES[key]['deficitToUse']) {
+        let deficitToUse = key !== 'SHADOWFIEND' ? CONSUMES[key]['value'] :
+          options['shadowfiendHealing'];
+
+        if (time >= options['consumesOffCD'][key] && manaDeficit > deficitToUse) {
           // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
           let haveUsedPreviousConsumes = CONSUMES[key]['waitForInitialUses'].map(i => options['consumesOffCD'][i] > 0);
           if (haveUsedPreviousConsumes.length > 0 && haveUsedPreviousConsumes.indexOf(false) > -1) {
@@ -182,7 +228,7 @@ export const mixin = {
       let options = {
         'manaPool': args['manaPool'],
         'manaCost': args['manaCost'],
-        'shadowfiendHealing': 7000,
+        'shadowfiendHealing': args['shadowfiendMana'],
         'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
         'shadowfiendTicks': 0,
         'maxTime': 10 * 60, // in seconds,
@@ -201,18 +247,22 @@ export const mixin = {
         'manaSummary': {},
         'scatterData': [],
       };
-      let castTime = 60 / args['cpm'];
+      let castTime = 60 / args['cpm'],
+        buffedInt = this.calculateTotalInt(args),
+        buffedSpirit = this.calculateTotalSpirit(args),
+        otherMP5 = this.calculateTotalOtherMp5(args, castTime);
+
+      let inCombatManaTick = this.calculateManaRegenPerTick(buffedInt, buffedSpirit, otherMP5);
       options['currentMana'] = options['manaPool'];
       options['shadowfiendHealingPerTick'] = options['shadowfiendHealing'] / 10;
 
+      // console.log(args['int'], );
       const customPriorityComparator = (a, b) => a.time - b.time;
       options['priorityQueue'] = new Heap(customPriorityComparator);
 
       this.addItemToQueue(options, 0, 'HEALING_SPELL_CAST');
       this.addItemToQueue(options, 0.1, 'MANA_TICK');
-
-      let inCombatManaTick = this.calculateManaRegenPerTick(args['int'], args['spirit'], args['otherMP5']);
-
+  
       let nextEvent;
       do {
         nextEvent = options['priorityQueue'].pop();
@@ -251,6 +301,11 @@ export const mixin = {
         logs: options['logs'],
         highlightedLogs: options['highlightedLogs'],
         manaSummary: options['manaSummary'],
+        statsSummary: {
+          'buffedInt': Math.floor(buffedInt),
+          'buffedSpirit': Math.floor(buffedSpirit),
+          'totalOtherMP5': Math.floor(otherMP5)
+        },
         scatterData: options['scatterData'],
         timeToOOM: Math.floor(options['timeToOOM']),
         inCombatManaTick: inCombatManaTick, 

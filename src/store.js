@@ -21,10 +21,24 @@ export const store = new Vuex.Store({
     oomOptions: {
       cpm: 30,
       manaCost: 405,
-      otherMP5: 200,
-      int: 650,
-      spirit: 600,
+      // gear-based mp5 + other sources like shadowpirest
+      otherMP5: 75,
+      int: 500,
+      spirit: 400,
       manaPool: 12000,
+      shadowfiendMana: 7000,
+      kreegs: false,
+      isHuman: false,
+      idsScroll: 'none',
+      ied: true,
+      // mana spring totem
+      mst: false,
+      // blessing of wisdom
+      bow: false,
+      hasSnowball: false,
+      // snowball mp5 is more complicated since you can cast more than 1 snowball per gcd
+      // typically in the 100-200mp5 range
+      snowballMP5: 100,
     },
     shamanOptions: {
       // used for all healing spells
