@@ -39,6 +39,10 @@ export const store = new Vuex.Store({
       // snowball mp5 is more complicated since you can cast more than 1 snowball per gcd
       // typically in the 100-200mp5 range
       snowballMP5: 100,
+      // mana tide totem
+      mtt: false,
+      hasShadowPriest: false,
+      shadowPriestDPS: 1000,
     },
     shamanOptions: {
       // used for all healing spells

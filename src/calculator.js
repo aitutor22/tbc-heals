@@ -19,6 +19,11 @@ const CONSUMES = {
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE'],
   },
+  'MANA_TIDE_TOTEM': {
+    value: 0,
+    cooldown: 60 * 5,
+    waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE', 'SHADOWFIEND'],
+  },
 };
 
 export const mixin = {
@@ -121,9 +126,11 @@ export const mixin = {
       // Mana Spring - 50 * 1.25 (after talents)
       // IED - 5% proc rate to return 300, 15s icd
       // formula for IED is 15 + 20 * castTime
+      // shadowpriest dps - 5% is converted to mana, multiply by 5 since conversion to mp5
 
       return args['otherMP5'] + (args['mst'] ? 50 * 1.25: 0) + (args['bow'] ? 49.2: 0)
         + (args['ied'] ? 300 / (15 + 20 * castTime) * 5 : 0)
+        + (args['shadowPriestDPS'] * 0.05 * 5)
         + args['snowballMP5'] + 12;
     },
     // for priest, int/spirit are buffed numbers. other_mp5 refers to gear based mp5, BoW, food (but exclude mana pots and dark runes)
@@ -146,7 +153,9 @@ export const mixin = {
         msg = `Mana tick at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       } else if (status === 'SHADOWFIEND_MANA_TICK') {
         msg = `Shadowfiend attacked at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
-      } else if (status === 'SUPER_MANA_POTION' || status === 'DARK_RUNE' || status === 'SHADOWFIEND') {
+      } else if (status === 'MANA_TIDE_TOTEM_TICK') {
+        msg = `Mana Tide Totem ticked at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
+      } else if (status === 'SUPER_MANA_POTION' || status === 'DARK_RUNE' || status === 'SHADOWFIEND' || status === 'MANA_TIDE_TOTEM') {
         msg = `Used ${status} at ${this.roundToTwo(time)}s. (${currentMana} / ${manaPool})`;
       }
       if (msg !== '') options['logs'].push(msg);
@@ -159,9 +168,21 @@ export const mixin = {
     consumeHelper(time, options) {
       let manaDeficit = options['manaPool'] - options['currentMana'];
 
+      // do not use consumes when shadowfiend or mana tide is active
+      if (this.shadowFiendActive || this.manaTideTotemActive) return;
+
       for (let key in CONSUMES) {
-        let deficitToUse = key !== 'SHADOWFIEND' ? CONSUMES[key]['value'] :
-          options['shadowfiendHealing'];
+        // checks to see if player has selected mana tide totem in the arguments
+        if (key === 'MANA_TIDE_TOTEM' && !options['playerSelectedManaTide']) return;
+
+        let deficitToUse;
+        if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
+          deficitToUse = CONSUMES[key]['value'];
+        } else if (key === 'SHADOWFIEND') {
+          deficitToUse = options['shadowfiendHealing'];
+        } else if (key === 'MANA_TIDE_TOTEM') {
+          deficitToUse = options['manaPool'] * 0.24;
+        }
 
         if (time >= options['consumesOffCD'][key] && manaDeficit > deficitToUse) {
           // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
@@ -172,11 +193,16 @@ export const mixin = {
 
           // if we do use a consume, we return as we should only use one consume at a time
           options['consumesOffCD'][key] = time + CONSUMES[key]['cooldown'];
-          if (key !== 'SHADOWFIEND') {
+          if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
             this.changeMana(options, CONSUMES[key]['value'], key);
-          } else {
+          } else if (key === 'SHADOWFIEND') {
             this.addItemToQueue(options, time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
+            this.shadowFiendActive = true;
             options['shadowfiendTicks'] = 0;
+          } else if (key === 'MANA_TIDE_TOTEM') {
+            this.addItemToQueue(options, time + options['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
+            this.manaTideTotemActive = true;
+            options['manaTideTotemTicks'] = 0;
           }
           this.logHelper(key, time, options);
           return key;
@@ -230,7 +256,13 @@ export const mixin = {
         'manaCost': args['manaCost'],
         'shadowfiendHealing': args['shadowfiendMana'],
         'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
+        'shadowFiendActive': false,
         'shadowfiendTicks': 0,
+        // mana tide isn't always present, depends on what player selects
+        'playerSelectedManaTide': args['mtt'],
+        'intervalBetweenManaTideTotemTicks': 3,
+        'manaTideTotemActive': false,
+        'manaTideTotemTicks': 0,
         'maxTime': 10 * 60, // in seconds,
         'GCD': 1.5,
         'timeLastAction': 0,
@@ -238,6 +270,7 @@ export const mixin = {
           'SUPER_MANA_POTION': 0,
           'DARK_RUNE': 0,
           'SHADOWFIEND': 0,
+          'MANA_TIDE_TOTEM': 0,
         },
         // can either be on-going or ended
         'status': 'ongoing',
@@ -255,6 +288,7 @@ export const mixin = {
       let inCombatManaTick = this.calculateManaRegenPerTick(buffedInt, buffedSpirit, otherMP5);
       options['currentMana'] = options['manaPool'];
       options['shadowfiendHealingPerTick'] = options['shadowfiendHealing'] / 10;
+      options['manaTideTotemManaPerTick'] = options['manaPool'] * 0.24 / 4;
 
       // console.log(args['int'], );
       const customPriorityComparator = (a, b) => a.time - b.time;
@@ -274,13 +308,29 @@ export const mixin = {
           this.logHelper('MANA_TICK', nextEvent.time, options);
           // adding next mana tick (based on 2s tick timer)
           this.addItemToQueue(options, nextEvent.time + 2, 'MANA_TICK');
-        } else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
+        } 
+        // adds next shadowfiend tick even
+        else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
           options['shadowfiendTicks']++;
           this.changeMana(options, options['shadowfiendHealingPerTick'], 'SHADOWFIEND');
           this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options);
           // once we readch 10 ticks, means shadowfiend has finished
           if (options['shadowfiendTicks'] < 10) {
             this.addItemToQueue(options, nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
+          } else {
+            this.shadowFiendActive = false;
+          }
+        } 
+        // adds next mana tide totem tick even
+        else if (nextEvent.type === 'MANA_TIDE_TOTEM_TICK') {
+          options['manaTideTotemTicks']++;
+          this.changeMana(options, options['manaTideTotemManaPerTick'], 'MANA_TIDE_TOTEM');
+          this.logHelper('MANA_TIDE_TOTEM_TICK', nextEvent.time, options);
+          // once we readch 4 ticks, means mana tide totem has finished
+          if (options['manaTideTotemTicks'] < 4) {
+            this.addItemToQueue(options, nextEvent.time + options['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
+          } else {
+            this.manaTideTotemActive = false;
           }
         }
 
@@ -307,7 +357,8 @@ export const mixin = {
           'totalOtherMP5': Math.floor(otherMP5)
         },
         scatterData: options['scatterData'],
-        timeToOOM: Math.floor(options['timeToOOM']),
+        // if timeToOOM is not a number, means didn't oom
+        timeToOOM: isNaN(options['timeToOOM']) ? '---' : Math.floor(options['timeToOOM']),
         inCombatManaTick: inCombatManaTick, 
       };
     },

@@ -98,12 +98,24 @@
 
       <div class="col-4">
         <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="mtt" v-model="oomOptions['mtt']">
+          <label class="form-check-label" for="mtt">Mana Tide Totem</label>
+        </div>
+        <div class="form-check">
           <input class="form-check-input" type="checkbox" id="hasSnowball" v-model="oomOptions['hasSnowball']">
           <label class="form-check-label" for="hasSnowball">Snowball?</label>
         </div>
         <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasSnowball']">
           <span class="input-group-text" id="basic-addon1">Snowball MP5</span>
           <input type="text" class="form-control" v-model="oomOptions['snowballMP5']">
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="hasShadowPriest" v-model="oomOptions['hasShadowPriest']">
+          <label class="form-check-label" for="hasShadowPriest">Shadow Priest?</label>
+        </div>
+        <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasShadowPriest']">
+          <span class="input-group-text" id="basic-addon1">Shadow Priest DPS</span>
+          <input type="text" class="form-control" v-model="oomOptions['shadowPriestDPS']">
         </div>
       </div>
     </div>
@@ -118,6 +130,9 @@
         <li>Mana from Super Mana Pots: <b>{{ results['manaSummary']['SUPER_MANA_POTION'] }}</b></li>
         <li>Mana from Dark Runes: <b>{{ results['manaSummary']['DARK_RUNE'] }}</b></li>
         <li>Mana from Shadowfiend: <b>{{ results['manaSummary']['SHADOWFIEND'] }}</b></li>
+        <li v-if="results['manaSummary']['MANA_TIDE_TOTEM']">
+          Mana from Mana Tide Totem: <b>{{ results['manaSummary']['MANA_TIDE_TOTEM'] }}</b>
+        </li>
         <li>Other mana regen: <b>{{ results['manaSummary']['MANA_TICK'] }} ({{ results['inCombatManaTick'] }} per tick)</b></li>
       </ul>
     </div>
@@ -188,9 +203,12 @@ export default {
         idsScroll: this.oomOptions['idsScroll'],
         ied: this.oomOptions['ied'],
         mst: this.oomOptions['mst'],
+        mtt: this.oomOptions['mtt'],
         bow: this.oomOptions['bow'],
         snowballMP5: !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']),
+        shadowPriestDPS: !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']),
       });
+
       this.chartdata = {
         type: 'line',
         datasets: [{
