@@ -11,7 +11,7 @@
     </div> -->
     <div class="row">
       <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
-      <p>Importantly: other MP5 includes gear, oils, BoW, mana spring, etc, <b>BUT DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend</b>. This tool assumes max fight time of 10 mins.</p>
+      <p>Importantly: other MP5 includes gear, oils, BoW, mana spring, etc, <b>BUT DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately.</b>. This tool assumes max fight time of 10 mins.</p>
     </div>
     <div class="row">
       <div class="col-8">
