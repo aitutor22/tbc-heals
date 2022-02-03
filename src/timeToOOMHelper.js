@@ -24,6 +24,37 @@ const CONSUMES = {
   },
 };
 
+const defaultData = {
+  'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
+  'shadowFiendActive': false,
+  'shadowfiendTicks': 0,
+  // mana tide isn't always present, depends on what player selects
+  // 'playerSelectedManaTide': args['mtt'],
+  'intervalBetweenManaTideTotemTicks': 3,
+  'manaTideTotemActive': false,
+  'manaTideTotemTicks': 0,
+  'maxTime': 10 * 60, // in seconds,
+  // 'alchemistStone': args['alchemistStone'],
+  'GCD': 1.5,
+  'timeLastAction': 0,
+  'consumesOffCD': {
+    'SUPER_MANA_POTION': 0,
+    'DARK_RUNE': 0,
+    'SHADOWFIEND': 0,
+    'MANA_TIDE_TOTEM': 0,
+  },
+  // this is to avoid situations where a player's mana pool is 12k, and inputted shadowfiend is 12k
+  // and shadowfiend will never be used since mana_deficit will always be lesser than 12k
+  'THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT': 1000,
+  // can either be on-going or ended
+  'status': 'ongoing',
+  'logs': [],
+  // to include consume use and shadowfiend only
+  'highlightedLogs': [],
+  'manaSummary': {},
+  'scatterData': [],
+};   
+
 import {mixin} from './calculator'
 import {mapState} from 'vuex';
 
@@ -34,36 +65,7 @@ export const oomMixin = {
   },
   data() {
     return {
-      oomMixinData: {
-        'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
-        'shadowFiendActive': false,
-        'shadowfiendTicks': 0,
-        // mana tide isn't always present, depends on what player selects
-        // 'playerSelectedManaTide': args['mtt'],
-        'intervalBetweenManaTideTotemTicks': 3,
-        'manaTideTotemActive': false,
-        'manaTideTotemTicks': 0,
-        'maxTime': 10 * 60, // in seconds,
-        // 'alchemistStone': args['alchemistStone'],
-        'GCD': 1.5,
-        'timeLastAction': 0,
-        'consumesOffCD': {
-          'SUPER_MANA_POTION': 0,
-          'DARK_RUNE': 0,
-          'SHADOWFIEND': 0,
-          'MANA_TIDE_TOTEM': 0,
-        },
-        // this is to avoid situations where a player's mana pool is 12k, and inputted shadowfiend is 12k
-        // and shadowfiend will never be used since mana_deficit will always be lesser than 12k
-        'THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT': 1000,
-        // can either be on-going or ended
-        'status': 'ongoing',
-        'logs': [],
-        // to include consume use and shadowfiend only
-        'highlightedLogs': [],
-        'manaSummary': {},
-        'scatterData': [],
-      }
+      oomMixinData: {},
     };
   },
   methods: {
@@ -119,7 +121,6 @@ export const oomMixin = {
         this.oomMixinData['scatterData'].push({x: nextEvent.time, y: this.oomMixinData['currentMana']});
         } while (nextEvent.time < this.oomMixinData['maxTime'] && this.oomMixinData['status'] === 'ongoing');
 
-      console.log(this.oomMixinData);
       return {
         logs: this.oomMixinData['logs'],
         highlightedLogs: this.oomMixinData['highlightedLogs'],
@@ -137,7 +138,9 @@ export const oomMixin = {
       };
     },
     init() {
-      this.oomMixinData['castTime'] = 60 / this.oomOptions['cpm'];
+      // resets data to initial state
+      this.oomMixinData = JSON.parse(JSON.stringify(defaultData));
+      this.oomMixinData['castTime'] = 60 / this.convertToNumber(this.oomOptions['cpm']);
       this.calculateTotalInt();
       this.calculateTotalSpirit();
       this.calculateTotalOtherMp5();
@@ -146,7 +149,7 @@ export const oomMixin = {
 
       this.oomMixinData['currentMana'] = this.oomMixinData['manaPool'];
       // shadowfiend returns mana over 10 ticks, each tick is 1.5s
-      this.oomMixinData['shadowfiendHealingPerTick'] = this.oomOptions['shadowfiendMana'] / 10;
+      this.oomMixinData['shadowfiendHealingPerTick'] = this.convertToNumber(this.oomOptions['shadowfiendMana']) / 10;
       // mana tide returns 24% of mana pool over 4 ticks, each tick is 3s
       this.oomMixinData['manaTideTotemManaPerTick'] = Math.floor(this.oomMixinData['currentMana'] * 0.24 / 4);
 
@@ -170,7 +173,7 @@ export const oomMixin = {
       // Enlightenment - +5%
 
       this.oomMixinData['buffedInt'] = Math.floor(
-        (this.oomOptions['int'] + 40 + 30 + 19 + (this.oomOptions['kreegs'] ? -5 : 0))
+        (this.convertToNumber(this.oomOptions['int']) + 40 + 30 + 19 + (this.oomOptions['kreegs'] ? -5 : 0))
         * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
       );
       return this.oomMixinData['buffedInt'];
@@ -197,7 +200,7 @@ export const oomMixin = {
       }
 
       otherSpirit = (this.oomOptions['kreegs'] ? 25 : 0) + idsSpirit;
-      this.oomMixinData['buffedSpirit'] = Math.floor((this.oomOptions['spirit'] + 19 + 30 + 20 + otherSpirit)
+      this.oomMixinData['buffedSpirit'] = Math.floor((this.convertToNumber(this.oomOptions['spirit']) + 19 + 30 + 20 + otherSpirit)
         * 1.05 * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
         * (this.oomOptions['isHuman'] ? 1.1 : 1));
 
@@ -214,7 +217,7 @@ export const oomMixin = {
       let snowballMP5 = !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']);
       let shadowPriestDPS = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
 
-      this.oomMixinData['otherMP5'] = Math.floor(this.oomOptions['otherMP5'] + (this.oomOptions['mst'] ? 50 * 1.25: 0) + (this.oomOptions['bow'] ? 49.2: 0)
+      this.oomMixinData['otherMP5'] = Math.floor(this.convertToNumber(this.oomOptions['otherMP5']) + (this.oomOptions['mst'] ? 50 * 1.25: 0) + (this.oomOptions['bow'] ? 49.2: 0)
         + (this.oomOptions['ied'] ? 300 / (15 + 20 * this.oomMixinData['castTime']) * 5 : 0)
         + snowballMP5 + shadowPriestDPS + 12);
 
@@ -276,7 +279,7 @@ export const oomMixin = {
         return;
       }
 
-      if (this.oomMixinData['currentMana'] < this.oomOptions['manaCost']) {
+      if (this.oomMixinData['currentMana'] < this.convertToNumber(this.oomOptions['manaCost'])) {
         // timeLastAction refers to our previously casted spell as we ran oom then
         this.logHelper('OOM', this.oomMixinData['timeLastAction']);
         this.oomMixinData['timeToOOM'] = this.oomMixinData['timeLastAction'];
@@ -284,7 +287,7 @@ export const oomMixin = {
         return;
       }
       // can cast
-      this.changeMana(-this.oomOptions['manaCost'], 'HEALING_SPELL_CAST');
+      this.changeMana(-this.convertToNumber(this.oomOptions['manaCost']), 'HEALING_SPELL_CAST');
       this.oomMixinData['timeLastAction'] = nextEvent.time;
       // timeLastAction refers to the time we cast the current spell
       this.logHelper('HEALING_SPELL_CAST', this.oomMixinData['timeLastAction']);
@@ -312,7 +315,7 @@ export const oomMixin = {
           // note: dark runes aren't affected by alchemist stone
           deficitToUse = CONSUMES[key]['value'] * alchemistStoneScalingFactor;
         } else if (key === 'SHADOWFIEND') {
-          deficitToUse = this.oomOptions['shadowfiendMana'];
+          deficitToUse = this.convertToNumber(this.oomOptions['shadowfiendMana']);
         } else if (key === 'MANA_TIDE_TOTEM') {
           deficitToUse = this.oomMixinData['manaPool'] * 0.24;
         }
@@ -330,12 +333,14 @@ export const oomMixin = {
           if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
             this.changeMana(CONSUMES[key]['value'] * alchemistStoneScalingFactor, key);
           } else if (key === 'SHADOWFIEND') {
+            // console.log(time, this.oomMixinData['intervalBetweenShadowfiendTick'], time + this.oomMixinData['intervalBetweenShadowfiendTick']);
             this.addItemToQueue(time + this.oomMixinData['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
-            this.shadowFiendActive = true;
+            this.oomMixinData['shadowFiendActive'] = true;
             this.oomMixinData['shadowfiendTicks'] = 0;
           } else if (key === 'MANA_TIDE_TOTEM') {
+            // console.log(time);
             this.addItemToQueue(time + this.oomMixinData['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
-            this.manaTideTotemActive = true;
+            this.oomMixinData['manaTideTotemActive'] = true;
             this.oomMixinData['manaTideTotemTicks'] = 0;
           }
           this.logHelper(key, time);
