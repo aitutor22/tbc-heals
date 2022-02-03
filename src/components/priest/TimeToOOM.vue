@@ -147,30 +147,28 @@
     </div>
 
     <div class="row slight-offset-top" v-if="results">
-      <h2>Results</h2>
-      <ul>
-        <li>Time to OOM: <b>{{ results['timeToOOM'] }}s</b></li>
-        <li>Mana Pool: <b>{{ results['manaPool'] }}</b></li>
-        <li>Buffed Int: <b>{{ results['statsSummary']['buffedInt'] }}</b></li>
-        <li>Buffed Spirit: <b>{{ results['statsSummary']['buffedSpirit'] }}</b></li>
-        <li v-if="results['statsSummary']['blueDragonMP5']">
-          Blue Dragon MP5: <b>{{ results['statsSummary']['blueDragonMP5'] }}</b>
-        </li>
-        <li v-if="results['statsSummary']['iedMP5']">
-          IED MP5: <b>{{ results['statsSummary']['iedMP5'] }}</b>
-        </li>
-        <li v-if="results['statsSummary']['mementoMP5']">
-          Memento MP5: <b>{{ results['statsSummary']['mementoMP5'] }}</b>
-        </li>
-        <li>Total MP5 (excld consumes): <b>{{ results['statsSummary']['totalOtherMP5'] }}</b></li>
-        <li>Mana from Super Mana Pots: <b>{{ results['manaSummary']['SUPER_MANA_POTION'] }}</b></li>
-        <li>Mana from Dark Runes: <b>{{ results['manaSummary']['DARK_RUNE'] }}</b></li>
-        <li>Mana from Shadowfiend: <b>{{ results['manaSummary']['SHADOWFIEND'] }}</b></li>
-        <li v-if="results['manaSummary']['MANA_TIDE_TOTEM']">
-          Mana from Mana Tide Totem: <b>{{ results['manaSummary']['MANA_TIDE_TOTEM'] }}</b>
-        </li>
-        <li>Other mana regen: <b>{{ results['manaSummary']['MANA_TICK'] }} ({{ results['inCombatManaTick'] }} per tick)</b></li>
-      </ul>
+      <div class="col-4">
+        <ul>
+          <li>Time to OOM: <b>{{ results['timeToOOM'] }}s</b></li>
+          <li>Mana Pool: <b>{{ results['manaPool'] }}</b></li>
+          <li>Buffed Int: <b>{{ results['statsSummary']['buffedInt'] }}</b></li>
+          <li>Buffed Spirit: <b>{{ results['statsSummary']['buffedSpirit'] }}</b></li>
+          <li>Mana from Super Mana Pots: <b>{{ results['consumesManaSummary']['SUPER_MANA_POTION'] }}</b></li>
+          <li>Mana from Dark Runes: <b>{{ results['consumesManaSummary']['DARK_RUNE'] }}</b></li>
+          <li>Mana from Shadowfiend: <b>{{ results['consumesManaSummary']['SHADOWFIEND'] }}</b></li>
+          <li v-if="results['consumesManaSummary']['MANA_TIDE_TOTEM']">
+            Mana from Mana Tide Totem: <b>{{ results['consumesManaSummary']['MANA_TIDE_TOTEM'] }}</b>
+          </li>
+        </ul>
+      </div>
+      <div class="col-4">
+        Total MP5: <b>{{ results['statsSummary']['totalOtherMP5'] }}</b>
+        <ol>
+          <li v-for="(item, index) in results['mp5Summary']" :key="index">
+            {{ item.name }}: <b>{{ item.value }}</b>
+          </li>
+        </ol>
+      </div>
     </div>
 
     <div class="row" v-if="results">

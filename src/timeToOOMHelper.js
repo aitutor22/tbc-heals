@@ -59,6 +59,7 @@ const defaultData = {
     'SHADOWFIEND': 0,
     'MANA_TIDE_TOTEM': 0,
   },
+  'totalOtherMP5': 0,
   // this is to avoid situations where a player's mana pool is 12k, and inputted shadowfiend is 12k
   // and shadowfiend will never be used since mana_deficit will always be lesser than 12k
   'THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT': 1000,
@@ -67,7 +68,8 @@ const defaultData = {
   'logs': [],
   // to include consume use and shadowfiend only
   'highlightedLogs': [],
-  'manaSummary': {},
+  'consumesManaSummary': {},
+  'mp5Summary': [],
   'scatterData': [],
 };   
 
@@ -137,19 +139,20 @@ export const oomMixin = {
         this.oomMixinData['scatterData'].push({x: nextEvent.time, y: this.oomMixinData['currentMana']});
         } while (nextEvent.time < this.oomMixinData['maxTime'] && this.oomMixinData['status'] === 'ongoing');
 
+      // sorts in descending order
+      this.oomMixinData['mp5Summary'].sort((a, b) => b.value - a.value);
+
       return {
         logs: this.oomMixinData['logs'],
         highlightedLogs: this.oomMixinData['highlightedLogs'],
-        manaSummary: this.oomMixinData['manaSummary'],
+        consumesManaSummary: this.oomMixinData['consumesManaSummary'],
         manaPool: this.oomMixinData['manaPool'],
         statsSummary: {
           'buffedInt': this.oomMixinData['buffedInt'],
           'buffedSpirit': this.oomMixinData['buffedSpirit'],
-          'totalOtherMP5': this.oomMixinData['totalOtherMP5'],
-          'blueDragonMP5': this.oomMixinData['blueDragonMP5'],
-          'iedMP5': (this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0),
-          'mementoMP5': (this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0),
+          'totalOtherMP5': Math.floor(this.oomMixinData['totalOtherMP5']),
         },
+        mp5Summary: this.oomMixinData['mp5Summary'],
         scatterData: this.oomMixinData['scatterData'],
         // if timeToOOM is not a number, means didn't oom
         timeToOOM: isNaN(this.oomMixinData['timeToOOM']) ? '---' : Math.floor(this.oomMixinData['timeToOOM']),
@@ -162,7 +165,6 @@ export const oomMixin = {
       this.oomMixinData['castTime'] = 60 / this.convertToNumber(this.oomOptions['cpm']);
       this.calculateTotalInt();
       this.calculateTotalSpirit();
-      this.calculateBlueDragonMP5();
       this.calculateTotalOtherMp5();
       this.calculateTotalManaPool();
       this.calculateManaRegenPerTick();
@@ -242,6 +244,16 @@ export const oomMixin = {
       this.oomMixinData['blueDragonMP5'] = Math.floor(additional_combat_mp2 * 7.5 * probabilityOfProcWithinFifteenSeconds * 4 / 12);
       return this.oomMixinData['blueDragonMP5'];
     },
+    addMP5(name, value) {
+      value = this.convertToNumber(value);
+      if (value <= 0) return;
+      this.oomMixinData['mp5Summary'].push({
+        name: name,
+        value: Math.floor(value),
+      });
+
+      this.oomMixinData['totalOtherMP5'] += value;
+    },
     calculateTotalOtherMp5() {
       // Brilliant Mana Oil - 12
       // Imp BoW - 49.2
@@ -249,13 +261,19 @@ export const oomMixin = {
       // shadowpriest dps - 5% is converted to mana, multiply by 5 since conversion to mp5
 
       let snowballMP5 = !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']);
-      let shadowPriestDPS = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
+      let shadowPriestMP5 = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
+      let iedMP5 = this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0;
+      let mementoMP5 = this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0;
 
-      this.oomMixinData['totalOtherMP5'] = Math.floor(this.convertToNumber(this.oomOptions['otherMP5']) + (this.oomOptions['mst'] ? 50 * 1.25: 0)
-        + (this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0)
-        + (this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0)
-        + (this.oomOptions['bow'] ? 49.2: 0)
-        + snowballMP5 + shadowPriestDPS + 12);
+      this.addMP5('Other MP5', this.oomOptions['otherMP5']);
+      this.addMP5('Mana Spring Totem', (this.oomOptions['mst'] ? 50 * 1.25: 0));
+      this.addMP5('Blessing of Wisdom', (this.oomOptions['bow'] ? 49.2: 0));
+      this.addMP5('Snowball', snowballMP5);
+      this.addMP5('Shadow Priest', shadowPriestMP5);
+      this.addMP5('IED', iedMP5);
+      this.addMP5('Memento', mementoMP5);
+      this.addMP5('Blue Dragon', this.calculateBlueDragonMP5());
+      this.addMP5('Brilliant Mana Oil', 12);
 
       return this.oomMixinData['totalOtherMP5'];
     },
@@ -264,7 +282,7 @@ export const oomMixin = {
     calculateManaRegenPerTick() {
       let combat_spirit_based_mp2 = 0.0093271 * 2 * (this.oomMixinData['buffedInt'] ** 0.5) * this.oomMixinData['buffedSpirit'] * 0.3;
       this.oomMixinData['inCombatManaTick'] = Math.floor(combat_spirit_based_mp2 + 
-        (this.oomMixinData['totalOtherMP5'] + this.oomMixinData['blueDragonMP5']) / 5 * 2);
+        (this.oomMixinData['totalOtherMP5'] / 5 * 2));
       return this.oomMixinData['inCombatManaTick'];
     },
     addItemToQueue(time, type) {
@@ -275,11 +293,11 @@ export const oomMixin = {
     },
     // use this to track mana changes
     changeMana(value, type) {
-      if (typeof this.oomMixinData['manaSummary'][type] === 'undefined') this.oomMixinData['manaSummary'][type] = 0;
+      if (typeof this.oomMixinData['consumesManaSummary'][type] === 'undefined') this.oomMixinData['consumesManaSummary'][type] = 0;
       this.oomMixinData['currentMana'] += value;
       // cannot exceed max mana
       if (this.oomMixinData['currentMana'] > this.oomMixinData['manaPool']) this.oomMixinData['currentMana'] = this.oomMixinData['manaPool'];
-      this.oomMixinData['manaSummary'][type] += Math.floor(value);
+      this.oomMixinData['consumesManaSummary'][type] += Math.floor(value);
     },
     // status - HEALING_SPELL_CAST, OOM
     logHelper(status, time) {
