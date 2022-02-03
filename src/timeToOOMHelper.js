@@ -24,6 +24,22 @@ const CONSUMES = {
   },
 };
 
+const PROC_BASED_ITEMS = {
+  'memento': {
+    value: 76 * 3,
+    // seconds
+    internalCooldown: 50,
+    procChance: 0.1,
+  },
+  // insightful earthstorm diamond
+  'ied': {
+    value: 300,
+    // seconds
+    internalCooldown: 15,
+    procChance: 0.05,
+  }
+}
+
 const defaultData = {
   'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
   'shadowFiendActive': false,
@@ -129,7 +145,10 @@ export const oomMixin = {
         statsSummary: {
           'buffedInt': this.oomMixinData['buffedInt'],
           'buffedSpirit': this.oomMixinData['buffedSpirit'],
-          'totalOtherMP5': this.oomMixinData['otherMP5'],
+          'totalOtherMP5': this.oomMixinData['totalOtherMP5'],
+          'blueDragonMP5': this.oomMixinData['blueDragonMP5'],
+          'iedMP5': (this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0),
+          'mementoMP5': (this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0),
         },
         scatterData: this.oomMixinData['scatterData'],
         // if timeToOOM is not a number, means didn't oom
@@ -143,6 +162,7 @@ export const oomMixin = {
       this.oomMixinData['castTime'] = 60 / this.convertToNumber(this.oomOptions['cpm']);
       this.calculateTotalInt();
       this.calculateTotalSpirit();
+      this.calculateBlueDragonMP5();
       this.calculateTotalOtherMp5();
       this.calculateTotalManaPool();
       this.calculateManaRegenPerTick();
@@ -206,28 +226,45 @@ export const oomMixin = {
 
       return this.oomMixinData['buffedSpirit'];
     },
+    calculateProcBasedMp5(itemName) {
+      // what is expected amount of time to get 1 proc? internal_cooldown + cast_time * expected_number_of_casts_required
+      // expected_number_of_casts_required is 1 / proc_chance
+      // so expected time = internal_cooldown + cast_time / proc_chance
+      // we then calculate expected_mp5 by value / expected_time * 5
+      let data = PROC_BASED_ITEMS[itemName];
+      return Math.floor(data['value'] / (data['internalCooldown'] + this.oomMixinData['castTime'] / data['procChance']) * 5);
+    },
+    // formula taken from mcpero's sheet
+    calculateBlueDragonMP5() {
+      let additional_combat_mp2 = 0.0093271 * 2 * (this.oomMixinData['buffedInt'] ** 0.5) * this.oomMixinData['buffedSpirit'] * 0.7;
+      // formula taken from mcpero's spreadsheet
+      let probabilityOfProcWithinFifteenSeconds = !this.oomOptions['blueDragon'] ? 0 : (1 - 0.98 ** (15 / this.oomMixinData['castTime']));
+      this.oomMixinData['blueDragonMP5'] = Math.floor(additional_combat_mp2 * 7.5 * probabilityOfProcWithinFifteenSeconds * 4 / 12);
+      return this.oomMixinData['blueDragonMP5'];
+    },
     calculateTotalOtherMp5() {
       // Brilliant Mana Oil - 12
       // Imp BoW - 49.2
       // Mana Spring - 50 * 1.25 (after talents)
-      // IED - 5% proc rate to return 300, 15s icd
-      // formula for IED is 15 + 20 * castTime
       // shadowpriest dps - 5% is converted to mana, multiply by 5 since conversion to mp5
 
       let snowballMP5 = !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']);
       let shadowPriestDPS = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
 
-      this.oomMixinData['otherMP5'] = Math.floor(this.convertToNumber(this.oomOptions['otherMP5']) + (this.oomOptions['mst'] ? 50 * 1.25: 0) + (this.oomOptions['bow'] ? 49.2: 0)
-        + (this.oomOptions['ied'] ? 300 / (15 + 20 * this.oomMixinData['castTime']) * 5 : 0)
+      this.oomMixinData['totalOtherMP5'] = Math.floor(this.convertToNumber(this.oomOptions['otherMP5']) + (this.oomOptions['mst'] ? 50 * 1.25: 0)
+        + (this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0)
+        + (this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0)
+        + (this.oomOptions['bow'] ? 49.2: 0)
         + snowballMP5 + shadowPriestDPS + 12);
 
-      return this.oomMixinData['otherMP5'];
+      return this.oomMixinData['totalOtherMP5'];
     },
     // for priest, int/spirit are buffed numbers. other_mp5 refers to gear based mp5, BoW, food (but exclude mana pots and dark runes)
     // returns mp2
     calculateManaRegenPerTick() {
       let combat_spirit_based_mp2 = 0.0093271 * 2 * (this.oomMixinData['buffedInt'] ** 0.5) * this.oomMixinData['buffedSpirit'] * 0.3;
-      this.oomMixinData['inCombatManaTick'] = Math.floor(combat_spirit_based_mp2 + this.oomMixinData['otherMP5'] / 5 * 2);
+      this.oomMixinData['inCombatManaTick'] = Math.floor(combat_spirit_based_mp2 + 
+        (this.oomMixinData['totalOtherMP5'] + this.oomMixinData['blueDragonMP5']) / 5 * 2);
       return this.oomMixinData['inCombatManaTick'];
     },
     addItemToQueue(time, type) {
@@ -333,12 +370,10 @@ export const oomMixin = {
           if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
             this.changeMana(CONSUMES[key]['value'] * alchemistStoneScalingFactor, key);
           } else if (key === 'SHADOWFIEND') {
-            // console.log(time, this.oomMixinData['intervalBetweenShadowfiendTick'], time + this.oomMixinData['intervalBetweenShadowfiendTick']);
             this.addItemToQueue(time + this.oomMixinData['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
             this.oomMixinData['shadowFiendActive'] = true;
             this.oomMixinData['shadowfiendTicks'] = 0;
           } else if (key === 'MANA_TIDE_TOTEM') {
-            // console.log(time);
             this.addItemToQueue(time + this.oomMixinData['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
             this.oomMixinData['manaTideTotemActive'] = true;
             this.oomMixinData['manaTideTotemTicks'] = 0;

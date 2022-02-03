@@ -135,6 +135,14 @@
           <input class="form-check-input" type="checkbox" id="alchemistStone" v-model="oomOptions['alchemistStone']">
           <label class="form-check-label" for="alchemistStone">Alchemist Stone</label>
         </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="blueDragon" v-model="oomOptions['blueDragon']">
+          <label class="form-check-label" for="blueDragon">Blue Dragon</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="memento" v-model="oomOptions['memento']">
+          <label class="form-check-label" for="memento">Memento</label>
+        </div>
       </div>
     </div>
 
@@ -145,7 +153,16 @@
         <li>Mana Pool: <b>{{ results['manaPool'] }}</b></li>
         <li>Buffed Int: <b>{{ results['statsSummary']['buffedInt'] }}</b></li>
         <li>Buffed Spirit: <b>{{ results['statsSummary']['buffedSpirit'] }}</b></li>
-        <li>Total Other MP5: <b>{{ results['statsSummary']['totalOtherMP5'] }}</b></li>
+        <li v-if="results['statsSummary']['blueDragonMP5']">
+          Blue Dragon MP5: <b>{{ results['statsSummary']['blueDragonMP5'] }}</b>
+        </li>
+        <li v-if="results['statsSummary']['iedMP5']">
+          IED MP5: <b>{{ results['statsSummary']['iedMP5'] }}</b>
+        </li>
+        <li v-if="results['statsSummary']['mementoMP5']">
+          Memento MP5: <b>{{ results['statsSummary']['mementoMP5'] }}</b>
+        </li>
+        <li>Total MP5 (excld consumes): <b>{{ results['statsSummary']['totalOtherMP5'] }}</b></li>
         <li>Mana from Super Mana Pots: <b>{{ results['manaSummary']['SUPER_MANA_POTION'] }}</b></li>
         <li>Mana from Dark Runes: <b>{{ results['manaSummary']['DARK_RUNE'] }}</b></li>
         <li>Mana from Shadowfiend: <b>{{ results['manaSummary']['SHADOWFIEND'] }}</b></li>
@@ -214,30 +231,13 @@ export default {
   },
   methods: {
     drawChart() {
+      if ((this.oomOptions['alchemistStone'] + this.oomOptions['blueDragon'] + this.oomOptions['memento']) > 2) {
+        alert('You have selected more than two trinkets.');
+        return;
+      }
+
       this.showExplanation = false;
-      // this.results = this.calculateTimeOOM({
-      //   manaCost: this.convertToNumber(this.oomOptions['manaCost']),
-      //   cpm: this.convertToNumber(this.oomOptions['cpm']),
-      //   int: this.convertToNumber(this.oomOptions['int']), 
-      //   spirit: this.convertToNumber(this.oomOptions['spirit']),
-      //   otherMP5: this.convertToNumber(this.oomOptions['otherMP5']),
-      //   shadowfiendMana: this.convertToNumber(this.oomOptions['shadowfiendMana']),
-      //   mentalStrength: this.oomOptions['mentalStrength'],
-      //   enlightenment: this.oomOptions['enlightenment'],
-      //   kreegs: this.oomOptions['kreegs'],
-      //   isHuman: this.oomOptions['isHuman'],
-      //   idsScroll: this.oomOptions['idsScroll'],
-      //   ied: this.oomOptions['ied'],
-      //   mst: this.oomOptions['mst'],
-      //   mtt: this.oomOptions['mtt'],
-      //   bow: this.oomOptions['bow'],
-      //   snowballMP5: !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']),
-      //   shadowPriestDPS: !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']),
-      //   alchemistStone: this.oomOptions['alchemistStone'],
-      // });
-
       this.results = this.calculateTimeOOM();
-
       this.chartdata = {
         type: 'line',
         datasets: [{
