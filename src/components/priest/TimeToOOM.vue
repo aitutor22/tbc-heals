@@ -3,7 +3,7 @@
     <div class="row" v-if="showExplanation">
       <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
       <p>
-        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Spirit of Redemption, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil. Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM.
+        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil. Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM.
       </p>
       <p>"Other MP5" includes regen from gear and trinkets and <b> DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
 
@@ -60,6 +60,10 @@
           <input class="form-check-input" type="checkbox" id="enlightenment" v-model="oomOptions['enlightenment']">
           <label class="form-check-label" for="enlightenment">Englightenment (<b>DISC TALENT</b>)</label>
         </div>
+<!--         <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="sor" v-model="oomOptions['enlightenment']">
+          <label class="form-check-label" for="enlightenment">Englightenment (<b>DISC TALENT</b>)</label>
+        </div> -->
         <!-- spirit -->
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="kreegs" v-model="oomOptions['kreegs']">
@@ -174,9 +178,9 @@
 <script>
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../../chart.js';
-// import SummaryTable from './../SummaryTable.vue';
 import {circleOfHealing as spellData} from '../../spells';
 import {mixin} from '../../calculator';
+import {oomMixin} from '../../timeToOOMHelper';
 import {oomchartoptions} from '../../shared_variables';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
@@ -186,7 +190,7 @@ export default {
   components: {BarChart},
   props: {
   },
-  mixins: [mixin],
+  mixins: [mixin, oomMixin],
   data() {
     return {
       chartoptions: oomchartoptions,
@@ -211,26 +215,28 @@ export default {
   methods: {
     drawChart() {
       this.showExplanation = false;
-      this.results = this.calculateTimeOOM({
-        manaCost: this.convertToNumber(this.oomOptions['manaCost']),
-        cpm: this.convertToNumber(this.oomOptions['cpm']),
-        int: this.convertToNumber(this.oomOptions['int']), 
-        spirit: this.convertToNumber(this.oomOptions['spirit']),
-        otherMP5: this.convertToNumber(this.oomOptions['otherMP5']),
-        shadowfiendMana: this.convertToNumber(this.oomOptions['shadowfiendMana']),
-        mentalStrength: this.oomOptions['mentalStrength'],
-        enlightenment: this.oomOptions['enlightenment'],
-        kreegs: this.oomOptions['kreegs'],
-        isHuman: this.oomOptions['isHuman'],
-        idsScroll: this.oomOptions['idsScroll'],
-        ied: this.oomOptions['ied'],
-        mst: this.oomOptions['mst'],
-        mtt: this.oomOptions['mtt'],
-        bow: this.oomOptions['bow'],
-        snowballMP5: !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']),
-        shadowPriestDPS: !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']),
-        alchemistStone: this.oomOptions['alchemistStone'],
-      });
+      // this.results = this.calculateTimeOOM({
+      //   manaCost: this.convertToNumber(this.oomOptions['manaCost']),
+      //   cpm: this.convertToNumber(this.oomOptions['cpm']),
+      //   int: this.convertToNumber(this.oomOptions['int']), 
+      //   spirit: this.convertToNumber(this.oomOptions['spirit']),
+      //   otherMP5: this.convertToNumber(this.oomOptions['otherMP5']),
+      //   shadowfiendMana: this.convertToNumber(this.oomOptions['shadowfiendMana']),
+      //   mentalStrength: this.oomOptions['mentalStrength'],
+      //   enlightenment: this.oomOptions['enlightenment'],
+      //   kreegs: this.oomOptions['kreegs'],
+      //   isHuman: this.oomOptions['isHuman'],
+      //   idsScroll: this.oomOptions['idsScroll'],
+      //   ied: this.oomOptions['ied'],
+      //   mst: this.oomOptions['mst'],
+      //   mtt: this.oomOptions['mtt'],
+      //   bow: this.oomOptions['bow'],
+      //   snowballMP5: !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']),
+      //   shadowPriestDPS: !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']),
+      //   alchemistStone: this.oomOptions['alchemistStone'],
+      // });
+
+      this.results = this.calculateTimeOOM();
 
       this.chartdata = {
         type: 'line',
