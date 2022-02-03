@@ -82,32 +82,59 @@ export const oomMixin = {
           // adding next mana tick (based on 2s tick timer)
           this.addItemToQueue(nextEvent.time + 2, 'MANA_TICK');
         } 
-        // // adds next shadowfiend tick even
-        // else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
-        //   options['shadowfiendTicks']++;
-        //   this.changeMana(options, options['shadowfiendHealingPerTick'], 'SHADOWFIEND');
-        //   this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time, options);
-        //   // once we readch 10 ticks, means shadowfiend has finished
-        //   if (options['shadowfiendTicks'] < 10) {
-        //     this.addItemToQueue(options, nextEvent.time + options['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
-        //   } else {
-        //     this.shadowFiendActive = false;
-        //   }
-        // } 
-        // // adds next mana tide totem tick even
-        // else if (nextEvent.type === 'MANA_TIDE_TOTEM_TICK') {
-        //   options['manaTideTotemTicks']++;
-        //   this.changeMana(options, options['manaTideTotemManaPerTick'], 'MANA_TIDE_TOTEM');
-        //   this.logHelper('MANA_TIDE_TOTEM_TICK', nextEvent.time, options);
-        //   // once we readch 4 ticks, means mana tide totem has finished
-        //   if (options['manaTideTotemTicks'] < 4) {
-        //     this.addItemToQueue(options, nextEvent.time + options['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
-        //   } else {
-        //     this.manaTideTotemActive = false;
-        //   }
+        // adds next shadowfiend tick even
+        else if (nextEvent.type === 'SHADOWFIEND_MANA_TICK') {
+          this.oomMixinData['shadowfiendTicks']++;
+          this.changeMana(this.oomMixinData['shadowfiendHealingPerTick'], 'SHADOWFIEND');
+          this.logHelper('SHADOWFIEND_MANA_TICK', nextEvent.time);
+          // once we readch 10 ticks, means shadowfiend has finished
+          if (this.oomMixinData['shadowfiendTicks'] < 10) {
+            this.addItemToQueue(nextEvent.time + this.oomMixinData['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
+          } else {
+            this.oomMixinData['shadowFiendActive'] = false;
+          }
+        } 
+        // adds next mana tide totem tick even
+        else if (nextEvent.type === 'MANA_TIDE_TOTEM_TICK') {
+          this.oomMixinData['manaTideTotemTicks']++;
+          this.changeMana(this.oomMixinData['manaTideTotemManaPerTick'], 'MANA_TIDE_TOTEM');
+          this.logHelper('MANA_TIDE_TOTEM_TICK', nextEvent.time);
+          // once we readch 4 ticks, means mana tide totem has finished
+          if (this.oomMixinData['manaTideTotemTicks'] < 4) {
+            this.addItemToQueue(nextEvent.time + this.oomMixinData['intervalBetweenManaTideTotemTicks'], 'MANA_TIDE_TOTEM_TICK');
+          } else {
+            this.oomMixinData['manaTideTotemActive'] = false;
+          }
+        }
+
+        // when we have multiple events at the same time, we only show the final currentMana for that time
+        // this ensures graph is smoother
+        if (this.oomMixinData['scatterData'].length > 0) {
+          let lastEntry = this.oomMixinData['scatterData'][this.oomMixinData['scatterData'].length - 1];
+          if (nextEvent.time === lastEntry.x) {
+            // console.log(lastEntry.x)
+            this.oomMixinData['scatterData'].pop();
+          }
+        }
+        this.oomMixinData['scatterData'].push({x: nextEvent.time, y: this.oomMixinData['currentMana']});
         } while (nextEvent.time < this.oomMixinData['maxTime'] && this.oomMixinData['status'] === 'ongoing');
 
       console.log(this.oomMixinData);
+      return {
+        logs: this.oomMixinData['logs'],
+        highlightedLogs: this.oomMixinData['highlightedLogs'],
+        manaSummary: this.oomMixinData['manaSummary'],
+        manaPool: this.oomMixinData['manaPool'],
+        statsSummary: {
+          'buffedInt': this.oomMixinData['buffedInt'],
+          'buffedSpirit': this.oomMixinData['buffedSpirit'],
+          'totalOtherMP5': this.oomMixinData['otherMP5'],
+        },
+        scatterData: this.oomMixinData['scatterData'],
+        // if timeToOOM is not a number, means didn't oom
+        timeToOOM: isNaN(this.oomMixinData['timeToOOM']) ? '---' : Math.floor(this.oomMixinData['timeToOOM']),
+        inCombatManaTick: this.oomMixinData['inCombatManaTick'], 
+      };
     },
     init() {
       this.oomMixinData['castTime'] = 60 / this.oomOptions['cpm'];
@@ -249,7 +276,7 @@ export const oomMixin = {
         return;
       }
 
-      if (this.oomMixinData['currentMana'] < this.oomMixinData['manaCost']) {
+      if (this.oomMixinData['currentMana'] < this.oomOptions['manaCost']) {
         // timeLastAction refers to our previously casted spell as we ran oom then
         this.logHelper('OOM', this.oomMixinData['timeLastAction']);
         this.oomMixinData['timeToOOM'] = this.oomMixinData['timeLastAction'];
@@ -257,14 +284,13 @@ export const oomMixin = {
         return;
       }
       // can cast
-      this.changeMana(-this.oomMixinData['manaCost'], 'HEALING_SPELL_CAST');
+      this.changeMana(-this.oomOptions['manaCost'], 'HEALING_SPELL_CAST');
       this.oomMixinData['timeLastAction'] = nextEvent.time;
       // timeLastAction refers to the time we cast the current spell
       this.logHelper('HEALING_SPELL_CAST', this.oomMixinData['timeLastAction']);
       // adding next spellcast (based on cast time)
       this.addItemToQueue(nextEvent.time + this.oomMixinData['castTime'], 'HEALING_SPELL_CAST');
     },
-  },
     // bunch of magic numbers here, refactor in future
     // returns [boolean_indiciating_if_consume_used, mana_regen, message]
     consumeHelper(time) {
@@ -318,6 +344,7 @@ export const oomMixin = {
       }
       return null;
     },
+  },
   mounted() {
 
   }
