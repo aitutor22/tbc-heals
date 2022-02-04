@@ -29,6 +29,8 @@ export const store = new Vuex.Store({
       shadowfiendMana: 7000,
       mentalStrength: false,
       enlightenment: false,
+      // spirit of redemption (+5% spirit)
+      sor: true,
       kreegs: false,
       isHuman: false,
       idsScroll: 'none',
@@ -46,6 +48,9 @@ export const store = new Vuex.Store({
       hasShadowPriest: false,
       shadowPriestDPS: 1000,
       alchemistStone: false,
+      hasEoG: false,
+      // will always assume 10% PoM/PWS
+      cohPercent: 60,
     },
     shamanOptions: {
       // used for all healing spells

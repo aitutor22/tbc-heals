@@ -40,6 +40,9 @@ const PROC_BASED_ITEMS = {
   }
 }
 
+// pom/pws
+const PERCENTAGE_OF_CAST_CANNOT_PROC_EOG = 10;
+
 const defaultData = {
   'intervalBetweenShadowfiendTick': 1.5, // heals over 10x 1.5s intervals
   'shadowFiendActive': false,
@@ -223,7 +226,8 @@ export const oomMixin = {
 
       otherSpirit = (this.oomOptions['kreegs'] ? 25 : 0) + idsSpirit;
       this.oomMixinData['buffedSpirit'] = Math.floor((this.convertToNumber(this.oomOptions['spirit']) + 19 + 30 + 20 + otherSpirit)
-        * 1.05 * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
+        * (this.oomOptions['sor'] ? 1.05 : 1)
+        * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
         * (this.oomOptions['isHuman'] ? 1.1 : 1));
 
       return this.oomMixinData['buffedSpirit'];
@@ -244,12 +248,34 @@ export const oomMixin = {
       this.oomMixinData['blueDragonMP5'] = Math.floor(additional_combat_mp2 * 7.5 * probabilityOfProcWithinFifteenSeconds * 4 / 12);
       return this.oomMixinData['blueDragonMP5'];
     },
+    // assumes 10% of casts are pws or pom that cannot proc eog
+    calculateEoGMP5() {
+      if (!this.oomOptions['hasEoG']) {
+        this.oomMixinData['eogMP5'] = 0;
+        return 0;
+      }
+
+      let netPercentCoH, netPercentSingleTarget, avgTargets, procChance;
+      // if user says 95% of his casts are CoH, then implies only 5% are PoM/PWS
+      if (this.oomOptions['cohPercent'] >= 100 - PERCENTAGE_OF_CAST_CANNOT_PROC_EOG) {
+        // cannot exceed 100% CoH
+        netPercentCoH = Math.min(this.oomOptions['cohPercent'], 100);
+        netPercentSingleTarget = 0;
+      } else {
+        netPercentCoH = Math.max(this.oomOptions['cohPercent'], 0);
+        netPercentSingleTarget = 100 - 10 - netPercentCoH;
+      }
+      avgTargets = (netPercentCoH * 5 + netPercentSingleTarget) / 100;
+      procChance = 1 - (0.98) ** avgTargets;
+      this.oomMixinData['eogMP5'] = Math.floor(this.convertToNumber(this.oomOptions['manaCost']) * this.convertToNumber(this.oomOptions['cpm']) * procChance) / 12;
+      return this.oomMixinData['eogMP5'];
+    },
     addMP5(name, value) {
       value = this.convertToNumber(value);
       if (value <= 0) return;
       this.oomMixinData['mp5Summary'].push({
         name: name,
-        value: Math.floor(value),
+        value: Math.round(value),
       });
 
       this.oomMixinData['totalOtherMP5'] += value;
@@ -264,6 +290,7 @@ export const oomMixin = {
       let shadowPriestMP5 = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
       let iedMP5 = this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0;
       let mementoMP5 = this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0;
+      // let eogMP5 = this.oomOptions['hasEoG'] ?  : 0;
 
       this.addMP5('Other MP5', this.oomOptions['otherMP5']);
       this.addMP5('Mana Spring Totem', (this.oomOptions['mst'] ? 50 * 1.25: 0));
@@ -273,6 +300,7 @@ export const oomMixin = {
       this.addMP5('IED', iedMP5);
       this.addMP5('Memento', mementoMP5);
       this.addMP5('Blue Dragon', this.calculateBlueDragonMP5());
+      this.addMP5('Eye of Gruul', this.calculateEoGMP5());
       this.addMP5('Brilliant Mana Oil', 12);
 
       return this.oomMixinData['totalOtherMP5'];

@@ -17,7 +17,8 @@
           v-if="chartdata"
           id="chart"
           :chart-data="chartdata"
-          :options="chartoptions"/>
+          :options="chartoptions"
+           style="height: 350px" />
       </div>
     </div>
 
@@ -44,26 +45,26 @@
           <span class="input-group-text" id="basic-addon1">Other MP5</span>
           <input type="text" class="form-control" v-model="oomOptions['otherMP5']">
         </div>
-        <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
-      </div>
-
-      <div class="col-4">
         <div class="input-group mb-2" style="width: 100%">
           <span class="input-group-text" id="basic-addon1">Mana from Shadowfiend</span>
           <input type="text" class="form-control" v-model="oomOptions['shadowfiendMana']">
         </div>
+        <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
+      </div>
+
+      <div class="col-4">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="mentalStrength" v-model="oomOptions['mentalStrength']">
           <label class="form-check-label" for="mentalStrength">Mental Strength (<b>DISC TALENT</b>)</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="enlightenment" v-model="oomOptions['enlightenment']">
-          <label class="form-check-label" for="enlightenment">Englightenment (<b>DISC TALENT</b>)</label>
+          <label class="form-check-label" for="enlightenment">Enlightenment (<b>DISC TALENT</b>)</label>
         </div>
-<!--         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="sor" v-model="oomOptions['enlightenment']">
-          <label class="form-check-label" for="enlightenment">Englightenment (<b>DISC TALENT</b>)</label>
-        </div> -->
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="sor" v-model="oomOptions['sor']">
+          <label class="form-check-label" for="sor">Spirit of Redemption</label>
+        </div>
         <!-- spirit -->
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="kreegs" v-model="oomOptions['kreegs']">
@@ -106,13 +107,13 @@
           <input class="form-check-input" type="checkbox" id="bow" v-model="oomOptions['bow']">
           <label class="form-check-label" for="bow">Blessing of Wisdom</label>
         </div>
-      </div>
-
-      <div class="col-4">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="mtt" v-model="oomOptions['mtt']">
           <label class="form-check-label" for="mtt">Mana Tide Totem</label>
         </div>
+      </div>
+
+      <div class="col-4">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="hasSnowball" v-model="oomOptions['hasSnowball']">
           <label class="form-check-label" for="hasSnowball">Snowball?</label>
@@ -129,8 +130,7 @@
           <span class="input-group-text" id="basic-addon1">Shadow Priest DPS</span>
           <input type="text" class="form-control" v-model="oomOptions['shadowPriestDPS']">
         </div>
-        <br>
-        <h6>Trinkets</h6>
+        <h8><b>Trinkets</b></h8>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="alchemistStone" v-model="oomOptions['alchemistStone']">
           <label class="form-check-label" for="alchemistStone">Alchemist Stone</label>
@@ -142,6 +142,14 @@
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="memento" v-model="oomOptions['memento']">
           <label class="form-check-label" for="memento">Memento</label>
+        </div>
+        <div class="form-check">
+         <input class="form-check-input" type="checkbox" id="hasEoG" v-model="oomOptions['hasEoG']">
+          <label class="form-check-label" for="hasEoG">Eye of Gruul?</label>
+        </div>
+        <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasEoG']">
+          <span class="input-group-text" id="basic-addon1">CoH Cast %</span>
+          <input type="text" class="form-control" v-model="oomOptions['cohPercent']">
         </div>
       </div>
     </div>
@@ -229,7 +237,7 @@ export default {
   },
   methods: {
     drawChart() {
-      if ((this.oomOptions['alchemistStone'] + this.oomOptions['blueDragon'] + this.oomOptions['memento']) > 2) {
+      if ((this.oomOptions['alchemistStone'] + this.oomOptions['blueDragon'] + this.oomOptions['memento'] + this.oomOptions['hasEoG']) > 2) {
         alert('You have selected more than two trinkets.');
         return;
       }
