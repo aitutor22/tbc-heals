@@ -3,10 +3,12 @@
     <div class="row" v-if="showExplanation">
       <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
       <p>
-        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil. Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM.
+        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil.
+      </p>
+      <p>
+        Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM. Alternatively, users can enter their logs for a specific fight (please select your priest and a specific fight), and the system will automatically pull your average mana cost and cpm for that fight. This is useful if you are looking at a specific mana intensive fight like Illidari Council.
       </p>
       <p>"Other MP5" includes regen from gear and trinkets and <b> DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
-
       <p>
         Special thanks to Bael for providing valuable feedback on features and options.
       </p>
@@ -49,7 +51,10 @@
           <span class="input-group-text" id="basic-addon1">Mana from Shadowfiend</span>
           <input type="text" class="form-control" v-model="oomOptions['shadowfiendMana']">
         </div>
-        <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
+        <div>
+          <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
+          <button class="btn btn-success slight-offset-left" @click="getManaDetails">Mana Cost/CPM from logs</button>
+        </div>
       </div>
 
       <div class="col-4">
@@ -150,6 +155,7 @@
         <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasEoG']">
           <span class="input-group-text" id="basic-addon1">CoH Cast %</span>
           <input type="text" class="form-control" v-model="oomOptions['cohPercent']">
+          <p><i>Will automatically assume up to 10% of casts are PoM/PWS and do not proc EoG.</i></p>
         </div>
       </div>
     </div>
@@ -199,6 +205,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import {mapFields} from 'vuex-map-fields';
 import BarChart from '../../chart.js';
 import {circleOfHealing as spellData} from '../../spells';
@@ -220,6 +227,7 @@ export default {
       results: null,
       chartdata: null,
       showExplanation: true,
+      fetching: false,
     };
   },
 
@@ -236,6 +244,43 @@ export default {
     },
   },
   methods: {
+    getManaDetails() {
+      if (this.fetching) {
+        alert('In the process of fetching report...');
+        return;
+      }
+
+      const url = prompt('Please enter logs url of the priest on a specific fight (e.g. https://classic.warcraftlogs.com/reports/MHzPrQGA1dDcKFV3#fight=102&type=healing&source=14)');
+
+      if (url.indexOf('fight=') === -1) {
+        alert('Invalid url - missing "fight=xx"');
+        return;
+      } else if (url.indexOf('source=') === -1) {
+        alert('Invalid url - missing "source=xx"; try selecting the priest');
+        return;
+      }
+
+      this.fetching = true;
+      let app = this;
+      axios
+        // .post('http://localhost:8000/main/blended-mana/', {url: url})
+        .post('http://spire-druid-prio.herokuapp.com/main/blended-mana/', {url: url})
+        .then((response) => {
+          app.fetching = false;
+          const manaCost = response.data['avg_mana_cost'];
+          const cpm = response.data['cpm'];
+          const name = response.data['name'];
+          this.oomOptions['manaCost'] = manaCost;
+          this.oomOptions['cpm'] = cpm;
+
+          alert(`CPM: ${cpm} and average mana cost is ${manaCost} for ${name}`);
+        })
+        .catch(function (error) {
+          app.fetching = false;
+          console.log(error.toJSON());
+          alert('Error fetching report from wcl');
+        });
+    },
     drawChart() {
       if ((this.oomOptions['alchemistStone'] + this.oomOptions['blueDragon'] + this.oomOptions['memento'] + this.oomOptions['hasEoG']) > 2) {
         alert('You have selected more than two trinkets.');
@@ -276,5 +321,9 @@ export default {
 }
 .slight-offset-top {
   margin-top: 20px;
+}
+
+.slight-offset-left {
+  margin-left: 10px;
 }
 </style>
