@@ -18,9 +18,10 @@
     </div>
 
     <div class="row">
-      <ul class="nav" v-if="className === 'priest'">
+      <ul class="nav" v-if="className === 'priest' && showSecondaryRow">
         <li class="nav-item">
-          <router-link :to="{name:'priest-time-to-oom'}" class="nav-link">Time to OOM</router-link>
+          <router-link :to="{name:'priest-time-to-oom'}"
+            class="nav-link">Time to OOM</router-link>
         </li>
         <li class="nav-item">
           <router-link :to="{name:'coh'}" class="nav-link">Circle of Healing</router-link>
@@ -36,7 +37,10 @@
         </li>
       </ul>
 
-      <ul class="nav" v-if="className === 'shaman'">
+      <ul class="nav" v-if="className === 'shaman' && showSecondaryRow">
+        <li class="nav-item">
+          <router-link :to="{name:'shaman-time-to-oom'}" class="nav-link">Time to OOM</router-link>
+        </li>
         <li class="nav-item">
           <router-link :to="{name:'chain-heal'}" class="nav-link">Chain Heal</router-link>
         </li>
@@ -48,7 +52,7 @@
         </li>
       </ul>
 
-      <ul class="nav" v-if="className === 'paladin'">
+      <ul class="nav" v-if="className === 'paladin' && showSecondaryRow">
         <li class="nav-item">
           <router-link :to="{name:'holy-light'}" class="nav-link">Holy Light</router-link>
         </li>
@@ -77,12 +81,19 @@ export default {
   data() {
     return {
       activeClass: 'priest',
+      showSecondaryRow: false,
     };
   },
   methods: {
     ...mapMutations(['setClassName']),
     select(className) {
       this.setClassName(className);
+      this.showSecondaryRow = true;
+    },
+  },
+  watch:{
+    $route() {
+      this.showSecondaryRow = false;
     },
   },
   mounted() {
@@ -92,7 +103,15 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.container {
+  margin-top: 10px;
+}
+
 .table-container {
   margin-top: 50px;
+}
+
+a.active {
+  background: #e4e4e4 !important;
 }
 </style>

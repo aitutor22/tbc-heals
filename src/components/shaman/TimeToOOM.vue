@@ -1,16 +1,16 @@
 <template>
   <div class="container">
     <div class="row" v-if="showExplanation">
-      <p>This is a general tool to visualise how long it takes for a priest to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
+      <p>This is a general tool to visualise how long it takes for a shaman to go OOM, especially as we get high haste in Sunwell. Rather than hardcode spells and trinket options, users can directly input information like CPM, average mana cost and MP5 that will allow you more flexibility.</p>
       <p>
-        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Elixir of Draenic Wisdom, Golden Fish Sticks and Brilliant Mana Oil.
+        The tool assumes you always have Mark of the Wild, Arcane Intellect, Blessing of Kings, Golden Fish Sticks and Brilliant Mana Oil.
       </p>
       <p>
-        Average mana cost of 393 is based off 90% CoH5/R12 and 10% PoM. Alternatively, users can enter their logs for a specific fight (please select your priest and a specific fight), and the system will automatically pull your average mana cost and cpm for that fight. This is useful if you are looking at a specific mana intensive fight like Illidari Council.
+        Average mana cost of 400 is based off 60% CH5, 30% CH2 and 10% other spells. Alternatively, users can enter their logs for a specific fight (please select your shaman and a specific fight), and the system will automatically pull your average mana cost and cpm for that fight (including totems but excludes water shield). This is useful if you are looking at a specific mana intensive fight like Illidari Council.
       </p>
-      <p>"Other MP5" includes regen from gear and trinkets and <b> DO NOT INCLUDE mana pots, runes, mana tide totem, and shadowfiend as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
+      <p>"Other MP5" includes regen from gear and trinkets and <b> DO NOT INCLUDE mana pots, runes, and mana tide totem as this is factored in separately</b>. This tool assumes max fight time of 10 mins.</p>
       <p>
-        Special thanks to Bael for providing valuable feedback on features and options.
+        Great thanks to Lovelace for vetting, and many formulas and values are based on Egregious' <a href="http://bit.ly/3bJ1ef0">calculator</a>.
       </p>
     </div>
     <div class="row">
@@ -40,16 +40,8 @@
         </div>
 
         <div class="input-group mb-2" style="width: 100%">
-          <span class="input-group-text" id="basic-addon1">Spirit</span>
-          <input type="text" class="form-control" v-model="oomOptions['spirit']">
-        </div>
-        <div class="input-group mb-2" style="width: 100%">
           <span class="input-group-text" id="basic-addon1">Other MP5</span>
           <input type="text" class="form-control" v-model="oomOptions['otherMP5']">
-        </div>
-        <div class="input-group mb-2" style="width: 100%">
-          <span class="input-group-text" id="basic-addon1">Mana from Shadowfiend</span>
-          <input type="text" class="form-control" v-model="oomOptions['shadowfiendMana']">
         </div>
         <div>
           <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
@@ -59,50 +51,22 @@
 
       <div class="col-4">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="mentalStrength" v-model="oomOptions['mentalStrength']">
-          <label class="form-check-label" for="mentalStrength">Mental Strength (<b>DISC TALENT</b>)</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="enlightenment" v-model="oomOptions['enlightenment']">
-          <label class="form-check-label" for="enlightenment">Enlightenment (<b>DISC TALENT</b>)</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="sor" v-model="oomOptions['sor']">
-          <label class="form-check-label" for="sor">Spirit of Redemption</label>
-        </div>
-        <!-- spirit -->
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="kreegs" v-model="oomOptions['kreegs']">
-          <label class="form-check-label" for="kreegs">Kreeg's Stout Beatdown</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="isHuman" v-model="oomOptions['isHuman']">
-          <label class="form-check-label" for="isHuman">Human Racial</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="ids" value="ids" v-model="oomOptions['idsScroll']">
-          <label class="form-check-label" for="ids">
-            IDS
-          </label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="scroll" value="scroll" v-model="oomOptions['idsScroll']">
-          <label class="form-check-label" for="scroll">
-            Spirit Scroll
-          </label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="flexRadioDefault" id="none" value="none" v-model="oomOptions['idsScroll']">
-          <label class="form-check-label" for="none">
-            None
-          </label>
+          <input class="form-check-input" type="checkbox" id="ancestralKnowledge" v-model="oomOptions['ancestralKnowledge']">
+          <label class="form-check-label" for="ancestralKnowledge">Ancestral Knowledge</label>
         </div>
 
         <!-- mp5 -->
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ied" v-model="oomOptions['ied']">
           <label class="form-check-label" for="ied">Insightful Earthstorm Diamond</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="hasWaterShield" v-model="oomOptions['hasWaterShield']">
+          <label class="form-check-label" for="hasWaterShield">Water Shield?</label>
+        </div>
+        <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasWaterShield']">
+          <span class="input-group-text" id="basic-addon1">Water Shield PPM</span>
+          <input type="text" class="form-control" v-model="oomOptions['waterShieldPPM']">
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="mst" v-model="oomOptions['mst']">
@@ -116,17 +80,23 @@
           <input class="form-check-input" type="checkbox" id="mtt" v-model="oomOptions['mtt']">
           <label class="form-check-label" for="mtt">Mana Tide Totem</label>
         </div>
+
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="mageblood" value="mageblood" v-model="oomOptions['shamanElixir']">
+          <label class="form-check-label" for="mageblood">
+            Elixir of Major Mageblood
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="flexRadioDefault" id="wisdom" value="wisdom" v-model="oomOptions['shamanElixir']">
+          <label class="form-check-label" for="wisdom">
+            Elixir of Draenic Wisdom
+          </label>
+        </div>
+
       </div>
 
       <div class="col-4">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="hasSnowball" v-model="oomOptions['hasSnowball']">
-          <label class="form-check-label" for="hasSnowball">Snowball?</label>
-        </div>
-        <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasSnowball']">
-          <span class="input-group-text" id="basic-addon1">Snowball MP5</span>
-          <input type="text" class="form-control" v-model="oomOptions['snowballMP5']">
-        </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="hasShadowPriest" v-model="oomOptions['hasShadowPriest']">
           <label class="form-check-label" for="hasShadowPriest">Shadow Priest?</label>
@@ -141,10 +111,6 @@
           <label class="form-check-label" for="alchemistStone">Alchemist Stone</label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="blueDragon" v-model="oomOptions['blueDragon']">
-          <label class="form-check-label" for="blueDragon">Blue Dragon</label>
-        </div>
-        <div class="form-check">
           <input class="form-check-input" type="checkbox" id="memento" v-model="oomOptions['memento']">
           <label class="form-check-label" for="memento">Memento</label>
         </div>
@@ -153,9 +119,8 @@
           <label class="form-check-label" for="hasEoG">Eye of Gruul?</label>
         </div>
         <div class="input-group mb-2" style="width: 100%" v-if="oomOptions['hasEoG']">
-          <span class="input-group-text" id="basic-addon1">CoH Cast %</span>
-          <input type="text" class="form-control" v-model="oomOptions['cohPercent']">
-          <p><i>Will automatically assume up to 10% of casts are PoM/PWS and do not proc EoG.</i></p>
+          <span class="input-group-text" id="basic-addon1">CH Cast %</span>
+          <input type="text" class="form-control" v-model="oomOptions['chPercent']">
         </div>
       </div>
     </div>
@@ -170,7 +135,6 @@
           <li>Buffed Spirit: <b>{{ results['statsSummary']['buffedSpirit'] }}</b></li>
           <li>Mana from Super Mana Pots: <b>{{ results['consumesManaSummary']['SUPER_MANA_POTION'] }}</b></li>
           <li>Mana from Dark Runes: <b>{{ results['consumesManaSummary']['DARK_RUNE'] }}</b></li>
-          <li>Mana from Shadowfiend: <b>{{ results['consumesManaSummary']['SHADOWFIEND'] }}</b></li>
           <li v-if="results['consumesManaSummary']['MANA_TIDE_TOTEM']">
             Mana from Mana Tide Totem: <b>{{ results['consumesManaSummary']['MANA_TIDE_TOTEM'] }}</b>
           </li>
@@ -200,6 +164,7 @@
       <h3>Known Issues</h3>
       <ul>
         <li>When mana tide totem is used, it will override mana spring, which should cause a temporary slight dip in mana regen. This is not accounted for.</li>
+        <li>Initial mana pool can differs slightly from Egregious' calculator as the tool rounds down Int rather than use decimal points.</li>
       </ul>
     </div>
   </div>
@@ -216,7 +181,7 @@ import {oomchartoptions} from '../../shared_variables';
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 
 export default {
-  name: 'PriestTimeToOOM',
+  name: 'ShamanTimeToOOM',
   components: {BarChart},
   props: {
   },
@@ -250,13 +215,13 @@ export default {
         return;
       }
 
-      const url = prompt('Please enter logs url of the priest on a specific fight (e.g. https://classic.warcraftlogs.com/reports/MHzPrQGA1dDcKFV3#fight=102&type=healing&source=14)');
+      const url = prompt('Please enter logs url of the shaman on a specific fight (e.g. https://classic.warcraftlogs.com/reports/MHzPrQGA1dDcKFV3#fight=102&type=healing&source=14)');
 
       if (url.indexOf('fight=') === -1) {
         alert('Invalid url - missing "fight=xx"');
         return;
       } else if (url.indexOf('source=') === -1) {
-        alert('Invalid url - missing "source=xx"; try selecting the priest');
+        alert('Invalid url - missing "source=xx"; try selecting the shaman');
         return;
       }
 
@@ -308,12 +273,12 @@ export default {
     },
   },
   mounted() {
-    this.setClassName('priest');
-    this.oomOptions['cpm'] = 30;
-    this.oomOptions['manaCost'] = 393;
-    this.oomOptions['mtt'] = false;
-    this.oomOptions['mst'] = false;
-    this.oomOptions['ied'] = true;
+    this.setClassName('shaman');
+    this.oomOptions['cpm'] = 24;
+    this.oomOptions['manaCost'] = 400;
+    this.oomOptions['mtt'] = true;
+    this.oomOptions['mst'] = true;
+    this.oomOptions['ied'] = false;
   },
 }
 </script>

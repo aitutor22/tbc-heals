@@ -14,8 +14,11 @@ import Renew from
 import CircleOfHealing from
   './components/priest/CircleOfHealing.vue';
 
-import TimeToOOM from
+import PriestTimeToOOM from
   './components/priest/TimeToOOM.vue';
+
+import ShamanTimeToOOM from
+  './components/shaman/TimeToOOM.vue';
 
 import ChainHeal from
   './components/shaman/ChainHeal.vue';
@@ -38,17 +41,18 @@ Vue.use(VueRouter)
 Vue.config.productionTip = false
 
 const routes = [
-  {path: '/priestoom', component: TimeToOOM, name: 'priest-time-to-oom'},
+  {path: '/priestoom', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
   {path: '/greaterheal', component: GreaterHeal, name: 'greater-heal'},
   {path: '/flashheal', component: FlashHeal, name: 'flash-heal'},
   {path: '/renew', component: Renew, name: 'renew'},
   {path: '/circleofhealing', component: CircleOfHealing, name: 'coh'},
+  {path: '/shamanoom', component: ShamanTimeToOOM, name: 'shaman-time-to-oom'},
   {path: '/chainheal', component: ChainHeal, name: 'chain-heal'},
   {path: '/lesserhealingwave', component: LesserHealingWave, name: 'lesser-healing-wave'},
   {path: '/healingwave', component: HealingWave, name: 'healing-wave'},
   {path: '/holylight', component: HolyLight, name: 'holy-light'},
   {path: '/flashoflight', component: FlashOfLight, name: 'flash-of-light'},
-  {path: '*', component: GreaterHeal},
+  {path: '*', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
 ];
 
 const router = new VueRouter({

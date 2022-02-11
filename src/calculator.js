@@ -4,6 +4,9 @@ export const mixin = {
   computed: {},
   methods: {
     ...mapMutations(['setClassName']),
+    roundToOne(num) {    
+      return +(Math.round(num + "e+1")  + "e-1");
+    },
     roundToTwo(num) {    
       return +(Math.round(num + "e+2")  + "e-2");
     },
@@ -37,7 +40,7 @@ export const mixin = {
       spell['efficiency'] = this.roundToTwo(spell['totalHeal'] / spell['mana']);
 
       if (includeInspiration) {
-        spell['inspiration_uptime'] = Math.round(this.calculateInspirationUptime(critChance / 100, spell['castTime']) * 100);
+        spell['inspiration_uptime'] = this.roundToOne(this.calculateInspirationUptime(critChance / 100, spell['castTime']) * 100);
       }
 
       // do rounding for formatting only at the end

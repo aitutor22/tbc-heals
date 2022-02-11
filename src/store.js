@@ -38,7 +38,7 @@ export const store = new Vuex.Store({
       // mana spring totem
       mst: false,
       // blessing of wisdom
-      bow: false,
+      bow: true,
       hasSnowball: false,
       // snowball mp5 is more complicated since you can cast more than 1 snowball per gcd
       // typically in the 100-200mp5 range
@@ -49,8 +49,17 @@ export const store = new Vuex.Store({
       shadowPriestDPS: 1000,
       alchemistStone: false,
       hasEoG: false,
-      // will always assume 10% PoM/PWS
+      // for eog, will always assume 10% PoM/PWS
       cohPercent: 60,
+
+      // FOR SHAMANS
+      ancestralKnowledge: true,
+      hasWaterShield: true,
+      waterShieldPPM: 2.5,
+      // for eog
+      chPercent: 100,
+      shamanElixir: 'wisdom',
+
     },
     shamanOptions: {
       // used for all healing spells

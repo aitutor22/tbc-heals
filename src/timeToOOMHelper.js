@@ -5,22 +5,26 @@ const CONSUMES = {
     value: 2400,
     cooldown: 120,
     waitForInitialUses: [],
+    class: 'all',
   },
   'DARK_RUNE': {
     value: 1200,
     cooldown: 120,
     // requires super mana potion to be used once first
     waitForInitialUses: ['SUPER_MANA_POTION'],
+    class: 'all',
   },
   'SHADOWFIEND': {
     value: 0,
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE'],
+    class: 'priest',
   },
   'MANA_TIDE_TOTEM': {
     value: 0,
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE', 'SHADOWFIEND'],
+    class: 'all',
   },
 };
 
@@ -82,7 +86,7 @@ import {mapState} from 'vuex';
 export const oomMixin = {
   mixins: [mixin],
   computed: {
-    ...mapState(['oomOptions']),
+    ...mapState(['oomOptions', 'className']),
   },
   data() {
     return {
@@ -159,7 +163,8 @@ export const oomMixin = {
         scatterData: this.oomMixinData['scatterData'],
         // if timeToOOM is not a number, means didn't oom
         timeToOOM: isNaN(this.oomMixinData['timeToOOM']) ? '---' : Math.floor(this.oomMixinData['timeToOOM']),
-        inCombatManaTick: this.oomMixinData['inCombatManaTick'], 
+        inCombatManaTick: this.oomMixinData['inCombatManaTick'],
+        timeToNextConsume: Math.ceil(this.oomMixinData['timeToNextConsume']),
       };
     },
     init() {
@@ -167,7 +172,9 @@ export const oomMixin = {
       this.oomMixinData = JSON.parse(JSON.stringify(defaultData));
       this.oomMixinData['castTime'] = 60 / this.convertToNumber(this.oomOptions['cpm']);
       this.calculateTotalInt();
-      this.calculateTotalSpirit();
+      if (this.className === 'priest'){
+        this.calculateTotalSpirit();
+      }
       this.calculateTotalOtherMp5();
       this.calculateTotalManaPool();
       this.calculateManaRegenPerTick();
@@ -185,10 +192,15 @@ export const oomMixin = {
       this.addItemToQueue(0.1, 'MANA_TICK');
     },
     calculateTotalManaPool() {
-      this.oomMixinData['manaPool'] = Math.floor((2340 + this.oomMixinData['buffedInt'] * 15) * (this.oomOptions['mentalStrength'] ? 1.1 : 1));
+      if (this.className === 'priest') {
+        this.oomMixinData['manaPool'] = Math.floor((2340 + this.oomMixinData['buffedInt'] * 15) * (this.oomOptions['mentalStrength'] ? 1.1 : 1));
+      } else if (this.className === 'shaman') {
+        this.oomMixinData['manaPool'] = Math.floor((2678 + this.oomMixinData['buffedInt'] * 15) * (this.oomOptions['ancestralKnowledge'] ? 1.05 : 1));
+      }
     },
     // we assume everyone has AI, MOTW, draenic wisdom and kings
     // user selected stuff are kreegs
+    // https://wowwiki-archive.fandom.com/wiki/Base_mana
     calculateTotalInt() {
       // Arcane Intellect - 40
       // Draenic Wisdom - 30
@@ -197,14 +209,26 @@ export const oomMixin = {
       // Kings - +10%
       // Enlightenment - +5%
 
-      this.oomMixinData['buffedInt'] = Math.floor(
-        (this.convertToNumber(this.oomOptions['int']) + 40 + 30 + 19 + (this.oomOptions['kreegs'] ? -5 : 0))
-        * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
-      );
+      if (this.className === 'priest') {
+        this.oomMixinData['buffedInt'] = Math.floor(
+          (this.convertToNumber(this.oomOptions['int']) + 40 + 30 + 19 + (this.oomOptions['kreegs'] ? -5 : 0))
+          * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
+        );        
+      } else if (this.className === 'shaman') {
+        this.oomMixinData['buffedInt'] = Math.floor(
+          (this.convertToNumber(this.oomOptions['int'])
+            + (this.oomOptions['shamanElixir'] === 'wisdom' ? 30 : 0)
+            + 40 + 19
+          ) * 1.1
+        );
+      }
+
       return this.oomMixinData['buffedInt'];
     },
+    // this is priest only
     // we assume everyone has MOTW, food buff, draenic wisdom and kings
     // user selected stuff are kreegs
+    // note that for shaman, they can choose between wisdom and mageblood, don't bother with this since shamans dont benefit from spirit
     calculateTotalSpirit() {
       // MoTW - 19
       // Draenic Wisdom - 30
@@ -255,19 +279,28 @@ export const oomMixin = {
         return 0;
       }
 
-      let netPercentCoH, netPercentSingleTarget, avgTargets, procChance;
-      // if user says 95% of his casts are CoH, then implies only 5% are PoM/PWS
-      if (this.oomOptions['cohPercent'] >= 100 - PERCENTAGE_OF_CAST_CANNOT_PROC_EOG) {
-        // cannot exceed 100% CoH
-        netPercentCoH = Math.min(this.oomOptions['cohPercent'], 100);
-        netPercentSingleTarget = 0;
-      } else {
-        netPercentCoH = Math.max(this.oomOptions['cohPercent'], 0);
-        netPercentSingleTarget = 100 - 10 - netPercentCoH;
+      let netPercentCoH, netPercentCH, netPercentSingleTarget, avgTargets, procChance, eogProcValue;
+      if (this.className === 'priest') {
+        // if user says 95% of his casts are CoH, then implies only 5% are PoM/PWS
+        if (this.oomOptions['cohPercent'] >= 100 - PERCENTAGE_OF_CAST_CANNOT_PROC_EOG) {
+          // cannot exceed 100% CoH
+          netPercentCoH = Math.min(this.oomOptions['cohPercent'], 100);
+          netPercentSingleTarget = 0;
+        } else {
+          netPercentCoH = Math.max(this.oomOptions['cohPercent'], 0);
+          netPercentSingleTarget = 100 - 10 - netPercentCoH;
+        }
+        avgTargets = (netPercentCoH * 5 + netPercentSingleTarget) / 100;
+      } else if (this.className === 'shaman') {
+        netPercentCH = Math.min(this.oomOptions['chPercent'], 100);
+        netPercentSingleTarget = 100 - netPercentCH;
+        avgTargets = (netPercentCH * 3 + netPercentSingleTarget) / 100;
       }
-      avgTargets = (netPercentCoH * 5 + netPercentSingleTarget) / 100;
+
       procChance = 1 - (0.98) ** avgTargets;
-      this.oomMixinData['eogMP5'] = Math.floor(this.convertToNumber(this.oomOptions['manaCost']) * this.convertToNumber(this.oomOptions['cpm']) * procChance) / 12;
+      // eog goes up to 450
+      eogProcValue = Math.min(this.convertToNumber(this.oomOptions['manaCost']), 450);
+      this.oomMixinData['eogMP5'] = Math.floor(eogProcValue * this.convertToNumber(this.oomOptions['cpm']) * procChance) / 12;
       return this.oomMixinData['eogMP5'];
     },
     addMP5(name, value) {
@@ -286,20 +319,34 @@ export const oomMixin = {
       // Mana Spring - 50 * 1.25 (after talents)
       // shadowpriest dps - 5% is converted to mana, multiply by 5 since conversion to mp5
 
-      let snowballMP5 = !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']);
       let shadowPriestMP5 = !this.oomOptions['hasShadowPriest'] ? 0 : this.convertToNumber(this.oomOptions['shadowPriestDPS']) * 0.05 * 5;
       let iedMP5 = this.oomOptions['ied'] ? this.calculateProcBasedMp5('ied') : 0;
       let mementoMP5 = this.oomOptions['memento'] ? this.calculateProcBasedMp5('memento') : 0;
-      // let eogMP5 = this.oomOptions['hasEoG'] ?  : 0;
+
+      if (this.className === 'priest') {
+        let snowballMP5 = !this.oomOptions['hasSnowball'] ? 0 : this.convertToNumber(this.oomOptions['snowballMP5']);
+        this.addMP5('Snowball', snowballMP5);
+        this.addMP5('Blue Dragon', this.calculateBlueDragonMP5());
+      }
+      else if (this.className === 'shaman') {
+        let waterShieldMP5 = 0;
+        if (this.oomOptions['hasWaterShield']) {
+          let waterShieldProcMP5 = 204 * this.oomOptions['waterShieldPPM'] / 12;
+          waterShieldMP5 = 50 + waterShieldProcMP5;
+        }
+        this.addMP5('Water Shield', waterShieldMP5);
+
+        if (this.oomOptions['shamanElixir'] === 'mageblood') {
+          this.addMP5('Elixir of Major Mageblood', 16);          
+        }
+      }
 
       this.addMP5('Other MP5', this.oomOptions['otherMP5']);
       this.addMP5('Mana Spring Totem', (this.oomOptions['mst'] ? 50 * 1.25: 0));
       this.addMP5('Blessing of Wisdom', (this.oomOptions['bow'] ? 49.2: 0));
-      this.addMP5('Snowball', snowballMP5);
       this.addMP5('Shadow Priest', shadowPriestMP5);
       this.addMP5('IED', iedMP5);
       this.addMP5('Memento', mementoMP5);
-      this.addMP5('Blue Dragon', this.calculateBlueDragonMP5());
       this.addMP5('Eye of Gruul', this.calculateEoGMP5());
       this.addMP5('Brilliant Mana Oil', 12);
 
@@ -308,7 +355,12 @@ export const oomMixin = {
     // for priest, int/spirit are buffed numbers. other_mp5 refers to gear based mp5, BoW, food (but exclude mana pots and dark runes)
     // returns mp2
     calculateManaRegenPerTick() {
-      let combat_spirit_based_mp2 = 0.0093271 * 2 * (this.oomMixinData['buffedInt'] ** 0.5) * this.oomMixinData['buffedSpirit'] * 0.3;
+      let combat_spirit_based_mp2 = 0
+      // only priests and druids have combat_spirit_regen
+      if (this.className === 'priest') {
+        combat_spirit_based_mp2 = 0.0093271 * 2 * (this.oomMixinData['buffedInt'] ** 0.5) * this.oomMixinData['buffedSpirit'] * 0.3;
+      }
+      
       this.oomMixinData['inCombatManaTick'] = Math.floor(combat_spirit_based_mp2 + 
         (this.oomMixinData['totalOtherMP5'] / 5 * 2));
       return this.oomMixinData['inCombatManaTick'];
@@ -329,8 +381,8 @@ export const oomMixin = {
     },
     // status - HEALING_SPELL_CAST, OOM
     logHelper(status, time) {
-      let currentMana = this.oomMixinData['currentMana'],
-        manaPool = this.oomMixinData['manaPool'],
+      let currentMana = Math.floor(this.oomMixinData['currentMana']),
+        manaPool = Math.floor(this.oomMixinData['manaPool']),
         msg = '';
 
       if (status === 'OOM') {
@@ -361,12 +413,32 @@ export const oomMixin = {
         this.addItemToQueue(nextEvent.time + this.oomMixinData['GCD'], 'HEALING_SPELL_CAST');
         return;
       }
+      if (consumeResults === 'MANA_TIDE_TOTEM' && this.className === 'shaman') {
+        // if we use mana tide as a shaman, then we don't cast a healing spell during this gcd and instead cast it 1s later (totem gcd is shorter)
+        // NOTE: if we are a priest, then we aren't affected, since it's a shaman that's casting for us
+        this.addItemToQueue(nextEvent.time + 1, 'HEALING_SPELL_CAST');
+        return;
+      }
 
       if (this.oomMixinData['currentMana'] < this.convertToNumber(this.oomOptions['manaCost'])) {
         // timeLastAction refers to our previously casted spell as we ran oom then
         this.logHelper('OOM', this.oomMixinData['timeLastAction']);
+
+        // we next try to find how much longer till the next consume
         this.oomMixinData['timeToOOM'] = this.oomMixinData['timeLastAction'];
-        this.oomMixinData['status'] = 'ended'
+        // let closestConsume = '';
+        let closestConsumeTimeAway = 9999999999;
+        for (let key in this.oomMixinData['consumesOffCD']) {
+          let _time = this.oomMixinData['consumesOffCD'][key] - this.oomMixinData['timeLastAction'];
+          // if less than 0, means consume hasnt been used and is invalid(like shadowfiend for a shaman)
+          if (_time <= 0) continue;
+          if (_time < closestConsumeTimeAway) {
+            closestConsumeTimeAway = _time;
+            // closestConsume = key;
+          }
+        }
+        this.oomMixinData['timeToNextConsume'] = closestConsumeTimeAway;
+        this.oomMixinData['status'] = 'ended';
         return;
       }
       // can cast
@@ -384,8 +456,9 @@ export const oomMixin = {
 
       // do not use consumes when shadowfiend or mana tide is active
       if (this.oomMixinData['shadowFiendActive'] || this.oomMixinData['manaTideTotemActive']) return;
-
       for (let key in CONSUMES) {
+        if (CONSUMES[key]['class'] !== 'all' && CONSUMES[key]['class'] !== this.className) continue;
+
         // checks to see if player has selected mana tide totem in the arguments
         if (key === 'MANA_TIDE_TOTEM' && !this.oomOptions['mtt']) return;
 
@@ -406,7 +479,15 @@ export const oomMixin = {
         if (time >= this.oomMixinData['consumesOffCD'][key] &&
               (manaDeficit > deficitToUse || this.oomMixinData['currentMana'] <= this.oomMixinData['THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT'])) {
           // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
-          let haveUsedPreviousConsumes = CONSUMES[key]['waitForInitialUses'].map(i => this.oomMixinData['consumesOffCD'][i] > 0);
+          let consumesToWaitForInitialUses = CONSUMES[key]['waitForInitialUses'];
+          // shamans don't have innervate so we remove that
+          if (this.className === 'shaman') {
+            const shadowFiendIndex = consumesToWaitForInitialUses.indexOf('SHADOWFIEND');
+            if (shadowFiendIndex !== -1) {
+              consumesToWaitForInitialUses.splice(shadowFiendIndex, 1);
+            }
+          }
+          let haveUsedPreviousConsumes = consumesToWaitForInitialUses.map(i => this.oomMixinData['consumesOffCD'][i] > 0);
           if (haveUsedPreviousConsumes.length > 0 && haveUsedPreviousConsumes.indexOf(false) > -1) {
             continue;
           }

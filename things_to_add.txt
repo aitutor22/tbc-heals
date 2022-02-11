@@ -1,0 +1,11 @@
+1) ability to share configs for time to oom
+2) ability to turn off dark runes
+3) ability to choose between mana pot and none and alchemist potions
+4) tells you which tab you are on
+5) tidy up the logs (floor dp)
+6) Time to next consume: 8.375s
+7) change time format to same as wcl
+8) when swapping to priest, reset cpm/avg mana cost?
+9) would it be possible to add labels showing what is used?
+10) option to use runes and mana pot together?
+11) nav bar should hide second layer when not selected
