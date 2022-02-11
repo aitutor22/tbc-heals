@@ -60,6 +60,9 @@ export const store = new Vuex.Store({
       chPercent: 100,
       shamanElixir: 'wisdom',
 
+      // consumes options
+      useRunes: true,
+
     },
     shamanOptions: {
       // used for all healing spells

@@ -122,6 +122,15 @@
           <span class="input-group-text" id="basic-addon1">CH Cast %</span>
           <input type="text" class="form-control" v-model="oomOptions['chPercent']">
         </div>
+        <h8><b>Consumes</b></h8>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="useRunes" v-model="oomOptions['useRunes']">
+          <label class="form-check-label" for="useRunes">Dark Runes</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="useRunesPotTogether" v-model="oomOptions['useRunesPotTogether']">
+          <label class="form-check-label" for="useRunesPotTogether">Use mana pot and runes at same time</label>
+        </div>
       </div>
     </div>
 
@@ -247,8 +256,13 @@ export default {
         });
     },
     drawChart() {
-      if ((this.oomOptions['alchemistStone'] + this.oomOptions['blueDragon'] + this.oomOptions['memento'] + this.oomOptions['hasEoG']) > 2) {
+      if ((this.oomOptions['alchemistStone'] + this.oomOptions['memento'] + this.oomOptions['hasEoG']) > 2) {
         alert('You have selected more than two trinkets.');
+        return;
+      }
+
+      if (this.oomOptions['useRunesPotTogether'] && !this.oomOptions['useRunes']) {
+        alert('Selected option to use runes and pots together but did not select runes');
         return;
       }
 

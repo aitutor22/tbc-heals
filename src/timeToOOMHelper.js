@@ -5,26 +5,22 @@ const CONSUMES = {
     value: 2400,
     cooldown: 120,
     waitForInitialUses: [],
-    class: 'all',
   },
   'DARK_RUNE': {
     value: 1200,
     cooldown: 120,
     // requires super mana potion to be used once first
     waitForInitialUses: ['SUPER_MANA_POTION'],
-    class: 'all',
   },
   'SHADOWFIEND': {
     value: 0,
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE'],
-    class: 'priest',
   },
   'MANA_TIDE_TOTEM': {
     value: 0,
     cooldown: 60 * 5,
     waitForInitialUses: ['SUPER_MANA_POTION', 'DARK_RUNE', 'SHADOWFIEND'],
-    class: 'all',
   },
 };
 
@@ -453,49 +449,79 @@ export const oomMixin = {
     // returns [boolean_indiciating_if_consume_used, mana_regen, message]
     consumeHelper(time) {
       let manaDeficit = this.oomMixinData['manaPool'] - this.oomMixinData['currentMana'];
+      // we create a copy of CONSUMES, and then delete irrelevant stuff
+      let _CONSUMES = JSON.parse(JSON.stringify(CONSUMES));
+
+      // filters aways consumes that isn't usable
+      let _toDelete = [];
+      if (!this.oomOptions['mtt']) {
+        delete _CONSUMES['MANA_TIDE_TOTEM'];
+        _toDelete.push('MANA_TIDE_TOTEM');
+      }
+      if (!this.oomOptions['useRunes']) {
+        delete _CONSUMES['DARK_RUNE'];
+        _toDelete.push('DARK_RUNE');
+      }
+      if (this.className !== 'priest') {
+        delete _CONSUMES['SHADOWFIEND'];
+        _toDelete.push('SHADOWFIEND');
+      }
+      for (let key in _CONSUMES) {
+        // we only want consumes that are usable
+        let filteredWaitForInitialUses = _CONSUMES[key]['waitForInitialUses'].filter((x) => {
+          return _toDelete.indexOf(x) === -1;
+        });
+        _CONSUMES[key]['waitForInitialUses'] = filteredWaitForInitialUses;
+      }
+      // end filtering
 
       // do not use consumes when shadowfiend or mana tide is active
       if (this.oomMixinData['shadowFiendActive'] || this.oomMixinData['manaTideTotemActive']) return;
-      for (let key in CONSUMES) {
-        if (CONSUMES[key]['class'] !== 'all' && CONSUMES[key]['class'] !== this.className) continue;
-
-        // checks to see if player has selected mana tide totem in the arguments
-        if (key === 'MANA_TIDE_TOTEM' && !this.oomOptions['mtt']) return;
-
+      for (let key in _CONSUMES) {
         let deficitToUse;
         // alchemist stone increases mana regen from super mana potions by 40%
         let alchemistStoneScalingFactor = (key === 'SUPER_MANA_POTION' && this.oomOptions['alchemistStone']) ?
             1.4 : 1;
 
         if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
-          // note: dark runes aren't affected by alchemist stone
-          deficitToUse = CONSUMES[key]['value'] * alchemistStoneScalingFactor;
+          // if we want to use mana_pot and dark rune together
+          if (this.oomOptions['useRunesPotTogether'] && key === 'SUPER_MANA_POTION') {
+            deficitToUse = _CONSUMES['SUPER_MANA_POTION']['value'] * (this.oomOptions['alchemistStone'] ? 1.4 : 1)
+              + _CONSUMES['DARK_RUNE']['value'];
+          } else {
+            // note: dark runes aren't affected by alchemist stone
+            deficitToUse = _CONSUMES[key]['value'] * alchemistStoneScalingFactor;
+          }
         } else if (key === 'SHADOWFIEND') {
           deficitToUse = this.convertToNumber(this.oomOptions['shadowfiendMana']);
         } else if (key === 'MANA_TIDE_TOTEM') {
           deficitToUse = this.oomMixinData['manaPool'] * 0.24;
         }
 
+        // if we use runes/pots togehter, we just need to check for one key since they have same cooldown
         if (time >= this.oomMixinData['consumesOffCD'][key] &&
               (manaDeficit > deficitToUse || this.oomMixinData['currentMana'] <= this.oomMixinData['THRESHOLD_TO_USE_CONSUMES_REGARDLESS_OF_DEFICIT'])) {
           // for dark rune and innervates, we need to check if previous consumes (e.g. super mana potion have been used)
-          let consumesToWaitForInitialUses = CONSUMES[key]['waitForInitialUses'];
-          // shamans don't have innervate so we remove that
-          if (this.className === 'shaman') {
-            const shadowFiendIndex = consumesToWaitForInitialUses.indexOf('SHADOWFIEND');
-            if (shadowFiendIndex !== -1) {
-              consumesToWaitForInitialUses.splice(shadowFiendIndex, 1);
-            }
-          }
-          let haveUsedPreviousConsumes = consumesToWaitForInitialUses.map(i => this.oomMixinData['consumesOffCD'][i] > 0);
+          let haveUsedPreviousConsumes = _CONSUMES[key]['waitForInitialUses'].map(i => this.oomMixinData['consumesOffCD'][i] > 0);
           if (haveUsedPreviousConsumes.length > 0 && haveUsedPreviousConsumes.indexOf(false) > -1) {
             continue;
           }
 
           // if we do use a consume, we return as we should only use one consume at a time
-          this.oomMixinData['consumesOffCD'][key] = time + CONSUMES[key]['cooldown'];
+          // unless player has selected the useRunesPotTogether option
+          if (this.oomOptions['useRunesPotTogether'] && key === 'SUPER_MANA_POTION') {
+            this.oomMixinData['consumesOffCD']['SUPER_MANA_POTION'] = time + _CONSUMES['SUPER_MANA_POTION']['cooldown'];
+            this.oomMixinData['consumesOffCD']['DARK_RUNE'] = time + _CONSUMES['DARK_RUNE']['cooldown'];
+            this.changeMana(_CONSUMES['SUPER_MANA_POTION']['value'] * alchemistStoneScalingFactor, 'SUPER_MANA_POTION');
+            this.changeMana(_CONSUMES['DARK_RUNE']['value'], 'DARK_RUNE');
+            this.logHelper('SUPER_MANA_POTION', time);
+            this.logHelper('DARK_RUNE', time);
+            return;
+          } 
+
+          this.oomMixinData['consumesOffCD'][key] = time + _CONSUMES[key]['cooldown'];
           if (key === 'SUPER_MANA_POTION' || key === 'DARK_RUNE') {
-            this.changeMana(CONSUMES[key]['value'] * alchemistStoneScalingFactor, key);
+            this.changeMana(_CONSUMES[key]['value'] * alchemistStoneScalingFactor, key);
           } else if (key === 'SHADOWFIEND') {
             this.addItemToQueue(time + this.oomMixinData['intervalBetweenShadowfiendTick'], 'SHADOWFIEND_MANA_TICK');
             this.oomMixinData['shadowFiendActive'] = true;
