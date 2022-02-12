@@ -13,7 +13,7 @@
         Great thanks to Lovelace for vetting, and many formulas and values are based on Egregious' <a href="http://bit.ly/3bJ1ef0">calculator</a>.
       </p>
     </div>
-    <div class="row">
+    <div class="row chart-container">
       <div class="col-12">
         <bar-chart
           v-if="chartdata"
@@ -303,6 +303,11 @@ export default {
   width: 100%;
   height: 400px
 }
+
+.chart-container {
+  margin-top: 10px;
+}
+
 .slight-offset-top {
   margin-top: 20px;
 }

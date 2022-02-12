@@ -13,7 +13,7 @@
         Special thanks to Bael for providing valuable feedback on features and options.
       </p>
     </div>
-    <div class="row">
+    <div class="row chart-container">
       <div class="col-12">
         <bar-chart
           v-if="chartdata"
@@ -334,6 +334,10 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.chart-container {
+  margin-top: 10px;
+}
+
 .log {
   width: 100%;
   height: 400px

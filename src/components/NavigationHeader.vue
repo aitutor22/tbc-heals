@@ -77,7 +77,6 @@ export default {
     return {
       activeClass: 'priest',
       showSecondaryRow: false,
-      hover: false,
     };
   },
   methods: {
@@ -92,17 +91,11 @@ export default {
       this.showSecondaryRow = true;
     },
     onHover(className) {
-      this.hover = true;
       this.setClassName(className);
       this.showSecondaryRow = true;
     },
     removeHover() {
-      console.log('remove hover');
-      // this.hover = false;
       this.showSecondaryRow = false;
-      // setTimeout(() => {
-      //   // this.hover = false;
-      // }, 100);
     },
   },
   watch:{
