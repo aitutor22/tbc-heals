@@ -62,15 +62,17 @@ export const oomchartoptions = {
       xAxes: [{
         stacked: false,
         // linear axes require x, y
-        type: 'linear',
+        type: 'time',
+        time: {
+          parser: 'm:s',
+          unit: 'seconds',
+          unitStepSize: 15,
+          displayFormats: {
+            'seconds': 'mm:ss'
+          }
+        },
         gridLines: {
           display: true,
-        },
-        ticks: {
-          beginAtZero: true,
-          maxRotation: 90,
-          minRotation: 90,
-          stepSize: 10,
         },
       }],
   }

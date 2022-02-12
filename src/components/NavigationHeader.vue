@@ -1,15 +1,11 @@
 <template>
-  <div class="container">
+  <div class="container" @mouseleave="removeHover">
     <div class="row">
       <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link" :class="{active: className === 'priest'}" href="#" @click="select('priest')">Priest</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" :class="{active: className === 'shaman'}" href="#" @click="select('shaman')">Shaman</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" :class="{active: className === 'paladin'}" href="#" @click="select('paladin')">Paladin</a>
+        <li class="nav-item" v-for="(_class, index) in ['priest', 'shaman', 'paladin']" :key="index"
+            @mouseover="onHover(_class)">
+          <a class="nav-link" :class="{active: className === _class}" href="#" @click="select(_class)">
+          {{ _class[0].toUpperCase() }}{{ _class.substring(1) }}</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="https://zak-lambert.github.io/tbc-sim/#/spell">Druid (by Xaddie)</a>
@@ -20,8 +16,7 @@
     <div class="row">
       <ul class="nav" v-if="className === 'priest' && showSecondaryRow">
         <li class="nav-item">
-          <router-link :to="{name:'priest-time-to-oom'}"
-            class="nav-link">Time to OOM</router-link>
+          <router-link :to="{name:'priest-time-to-oom'}" class="nav-link">Time to OOM</router-link>
         </li>
         <li class="nav-item">
           <router-link :to="{name:'coh'}" class="nav-link">Circle of Healing</router-link>
@@ -82,13 +77,32 @@ export default {
     return {
       activeClass: 'priest',
       showSecondaryRow: false,
+      hover: false,
     };
   },
   methods: {
     ...mapMutations(['setClassName']),
     select(className) {
+      if (this.className === className && this.showSecondaryRow) {
+        this.showSecondaryRow = false;
+        return;
+      }
+
       this.setClassName(className);
       this.showSecondaryRow = true;
+    },
+    onHover(className) {
+      this.hover = true;
+      this.setClassName(className);
+      this.showSecondaryRow = true;
+    },
+    removeHover() {
+      console.log('remove hover');
+      // this.hover = false;
+      this.showSecondaryRow = false;
+      // setTimeout(() => {
+      //   // this.hover = false;
+      // }, 100);
     },
   },
   watch:{

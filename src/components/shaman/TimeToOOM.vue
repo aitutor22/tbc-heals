@@ -20,7 +20,7 @@
           id="chart"
           :chart-data="chartdata"
           :options="chartoptions"
-           style="height: 350px" />
+           style="height: 350px;" />
       </div>
     </div>
 

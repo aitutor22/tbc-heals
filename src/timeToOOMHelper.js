@@ -90,6 +90,12 @@ export const oomMixin = {
     };
   },
   methods: {
+    // converst 74s to "1:14"
+    convertSecondsToMSFormat(sec) {
+      let mins = Math.floor(sec / 60);
+      let modulusSecs = sec % 60;
+      return `${mins}:${modulusSecs}`;
+    },
     calculateTimeOOM() {
       this.init();
 
@@ -139,7 +145,8 @@ export const oomMixin = {
             this.oomMixinData['scatterData'].pop();
           }
         }
-        this.oomMixinData['scatterData'].push({x: nextEvent.time, y: this.oomMixinData['currentMana']});
+        // this.oomMixinData['scatterData'].push({x: nextEvent.time, y: this.oomMixinData['currentMana']});
+        this.oomMixinData['scatterData'].push({x: this.convertSecondsToMSFormat(nextEvent.time), y: this.oomMixinData['currentMana']});
         } while (nextEvent.time < this.oomMixinData['maxTime'] && this.oomMixinData['status'] === 'ongoing');
 
       // sorts in descending order
