@@ -91,12 +91,6 @@
             Others
           </label>
         </div>
-<!--         <div>
-          <button>Share Link</button>
-          <br>
-          <input type="text" name="" :value="paramsState">
-          <button @click="copyToClipboard">Copy</button>
-        </div> -->
       </div>
     </div>
 
@@ -107,7 +101,7 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
-import {mapGetters} from 'vuex';
+import {mapMutations} from 'vuex';
 import BarChart from '../../chart.js';
 import SummaryTable from './../SummaryTable.vue';
 import {chainHeal as spellData} from '../../spells';
@@ -132,7 +126,6 @@ export default {
   computed: {
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent',
       'crystalSpire', 'spireProcPercent', 'shamanOptions']),
-    ...mapGetters(['paramsState']),
     spells() {
       if (!this.baseChartData) return;
       let _spells = JSON.parse(JSON.stringify(spellData));
@@ -146,19 +139,25 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setClassName']),
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
         // spell coefficient is based off original casting time
         let originalCastTime = spell['castTime'];
 
+        // from ptr, tidal focus and 2pT5 stacks together (0.85 * base)
+        // rather than 0.9 * 0.95 * base
+        let manaCostFactor = 1;
         if (this.shamanOptions['tidalFocus']) {
-          spell['mana'] *= 0.95;
+          manaCostFactor -= 0.05;
         }
 
         if (this.shamanOptions['2pT6']) {
-          spell['mana'] *= 0.9;
+          manaCostFactor -= 0.1;
         }
+
+        spell['mana'] = Math.ceil(manaCostFactor * spell['mana']);
 
         // per lovelace, T2.5 0.4s applies first, then haste
         if (this.shamanOptions['5pT2.5']) {
@@ -166,19 +165,19 @@ export default {
         }
 
         spell['castTime'] /= (1 + this.hastePercent / 100);
+        // after ptr testing, shaman 4pt6 bonus is applied additively rather than multplicaltively wrt improved chain heal
         spell['baseHeal'] = (spell['min'] + spell['max']) / 2
-          * (this.shamanOptions['improvedChainHeal'] ? 1.2 : 1)
+          * ((this.shamanOptions['improvedChainHeal'] ? 1.2 : 1) + (this.shamanOptions['4pT6'] ? 0.05 : 0))
           * (this.shamanOptions['purification'] ? 1.1 : 1)
-          * (this.shamanOptions['4pT6'] ? 1.05 : 1)
           * (1 + 0.5 + 0.25)
           * (100 - this.overhealPercent) / 100;
 
         let coefficient = spell['levelPenalty'] * originalCastTime / 3.5;
-        // unsure about this behavoiur - asume +88 from totem isn't affected by improved chain heal and casting coefficient
-        // but affected by 4pT6 and purification
-        spell['bonusHeal'] = (this.healingPower * coefficient * (this.shamanOptions['improvedChainHeal'] ? 1.2 : 1)
+        // unsure about this behaviour - asume +87 from totem isn't affected by improved chain heal and casting coefficient and 4pT6
+        // but affected by purification
+        spell['bonusHeal'] = (this.healingPower * coefficient
+          * ((this.shamanOptions['improvedChainHeal'] ? 1.2 : 1) + (this.shamanOptions['4pT6'] ? 0.05 : 0))
           + (this.shamanOptions['totem'] === 'rain' ? 87 : 0))
-          * (this.shamanOptions['4pT6'] ? 1.05 : 1)
           * (this.shamanOptions['purification'] ? 1.1 : 1)
           * (1 + 0.5 + 0.25)
 
@@ -196,6 +195,7 @@ export default {
     },
   },
   mounted() {
+    this.setClassName('shaman');
     this.baseChartData = this.init(spellData);
   },
 }

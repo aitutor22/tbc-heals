@@ -137,7 +137,7 @@ export default {
     },
   },
   methods: {
-    ...mapMutations(['setBlessingLight']),
+    ...mapMutations(['setClassName']),
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
@@ -179,6 +179,7 @@ export default {
     },
   },
   mounted() {
+    this.setClassName('paladin');
     this.baseChartData = this.init(spellData);
   },
 }

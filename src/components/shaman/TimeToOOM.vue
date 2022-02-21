@@ -45,7 +45,8 @@
         </div>
         <div>
           <button class="btn btn-primary" @click="drawChart">Draw Chart</button>
-          <button class="btn btn-success slight-offset-left" @click="getManaDetails">Mana Cost/CPM from logs</button>
+          <button class="btn btn-success slight-offset-left" @click="getManaDetails">Details from logs</button>
+          <button class="btn btn-danger slight-offset-left" @click="reset">Reset</button>
         </div>
       </div>
 
@@ -182,6 +183,7 @@
 <script>
 import axios from 'axios';
 import {mapFields} from 'vuex-map-fields';
+import {mapGetters, mapMutations} from 'vuex';
 import BarChart from '../../chart.js';
 import {mixin} from '../../calculator';
 import {oomMixin} from '../../timeToOOMHelper';
@@ -206,6 +208,7 @@ export default {
   },
 
   computed: {
+    ...mapGetters(['shareURLParams']),
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent',
         'crystalSpire', 'spireProcPercent', 'oomOptions']),
     logs() {
@@ -218,6 +221,11 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setOomOptionsUsingParams']),
+    reset() {
+      this.$router.push({name: 'shaman-time-to-oom'});
+      this.$router.go();
+    },
     getManaDetails() {
       if (this.fetching) {
         alert('In the process of fetching report...');
@@ -248,6 +256,7 @@ export default {
           this.oomOptions['cpm'] = cpm;
 
           alert(`CPM: ${cpm} and average mana cost is ${manaCost} for ${name}`);
+          this.drawChart();
         })
         .catch(function (error) {
           app.fetching = false;
@@ -284,6 +293,8 @@ export default {
           yAxisID: 'A',
         }]
       };
+      // update the url
+      this.$router.push({name: 'shaman-time-to-oom', query: {data: this.shareURLParams}});
     },
   },
   mounted() {
@@ -293,6 +304,16 @@ export default {
     this.oomOptions['mtt'] = true;
     this.oomOptions['mst'] = true;
     this.oomOptions['ied'] = false;
+    // need to set this to false as it doesnt actually show up on shaman side
+    // it's set on priest side
+    this.oomOptions['blueDragon'] = false;
+
+    let url = new URL(location.href);
+    let params = url.searchParams.get('data');
+    if (params !== null) {
+      this.setOomOptionsUsingParams(params);
+      this.drawChart();
+    }
   },
 }
 </script>

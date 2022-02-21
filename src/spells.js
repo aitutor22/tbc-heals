@@ -123,7 +123,7 @@ export const chainHeal = {
     { 'rank': 2, 'mana': 315, 'level': 46, 'castTime': 2.5, 'min': 405, 'max': 465, 'hotTick': 0 },
     { 'rank': 3, 'mana': 405, 'level': 54, 'castTime': 2.5, 'min': 551, 'max': 629, 'hotTick': 0 },
     { 'rank': 4, 'mana': 435, 'level': 61, 'castTime': 2.5, 'min': 605, 'max': 691, 'hotTick': 0 },
-    { 'rank': 5, 'mana': 540, 'level': 68, 'castTime': 2.5, 'min': 826, 'max': 943, 'hotTick': 0 },
+    { 'rank': 5, 'mana': 540, 'level': 68, 'castTime': 2.5, 'min': 833, 'max': 950, 'hotTick': 0 },
   ],
 };
 

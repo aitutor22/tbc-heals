@@ -1,5 +1,4 @@
 1) ability to share configs for time to oom
-7) change time format to same as wcl
 9) would it be possible to add labels showing what is used?
 
 MAYBE

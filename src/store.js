@@ -18,6 +18,11 @@ export const store = new Vuex.Store({
     overhealPercent: 0,
     crystalSpire: false,
     spireProcPercent: 10,
+    // FOR EVERY FIELD WE PUT IN OOMOPTIONS, PLEASE ENSURE THEY FOLLOW THE ORDER BELOW
+    // THIS IS FOR SHARING PURPOSES
+    keys: [
+      'cpm', 'manaCost', 'otherMP5', 'int', 'spirit', 'shadowfiendMana', 'mentalStrength', 'enlightenment', 'sor', 'kreegs', 'isHuman', 'idsScroll', 'ied', 'mst', 'bow', 'hasSnowball', 'snowballMP5', 'mtt', 'hasShadowPriest', 'shadowPriestDPS', 'alchemistStone', 'blueDragon', 'memento', 'hasEoG', 'cohPercent', 'ancestralKnowledge', 'hasWaterShield', 'waterShieldPPM', 'chPercent', 'shamanElixir', 'useRunes', 'useRunesPotTogether',
+    ],
     oomOptions: {
       cpm: 30,
       // based off 90% R12/CoH + 10% PoM
@@ -48,6 +53,8 @@ export const store = new Vuex.Store({
       hasShadowPriest: false,
       shadowPriestDPS: 1000,
       alchemistStone: false,
+      blueDragon: false,
+      memento: false,
       hasEoG: false,
       // for eog, will always assume 10% PoM/PWS
       cohPercent: 60,
@@ -62,6 +69,7 @@ export const store = new Vuex.Store({
 
       // consumes options
       useRunes: true,
+      useRunesPotTogether: false,
 
     },
     shamanOptions: {
@@ -115,8 +123,12 @@ export const store = new Vuex.Store({
     // Add the `getField` getter to the
     // `getters` of your Vuex store instance.
     getField,
-    paramsState: (state) => {
-      return new URLSearchParams(state).toString();
+    shareURLParams: (state) => {
+      let paramsString = '';
+      for (let key of state.keys) {
+        paramsString += `${state.oomOptions[key]};`
+      }
+      return paramsString.substring(0, paramsString.length - 1);
     },
   },
   mutations: {
@@ -126,5 +138,27 @@ export const store = new Vuex.Store({
     setClassName(state, value) {
       Vue.set(this.state, 'className', value);
     },
+    setOomOptionsUsingParams(state, paramsString) {
+      if (!paramsString) return;
+      let rawData = paramsString.split(';');
+      for (let index in rawData) {
+        let value = rawData[index];
+        let modifiedValue;
+        if (!isNaN(value)) {
+          modifiedValue = Number(value);
+        } else if (String(value).toLowerCase() == 'true') {
+          modifiedValue = true;
+        } else if (String(value).toLowerCase() == 'false') {
+          modifiedValue = false;
+        } else {
+          modifiedValue = value;
+        }
+        state.oomOptions[state.keys[index]] = modifiedValue;
+      }
+
+      // if (String(a).toLowerCase() == "true")
+      // console.log(values);
+    },
+    // setState(state, string)
   },
 });

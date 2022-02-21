@@ -72,6 +72,7 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
+import {mapMutations} from 'vuex';
 import BarChart from '../../chart.js';
 import SummaryTable from './../SummaryTable.vue';
 import {lesserHealingWave as spellData} from '../../spells';
@@ -108,6 +109,7 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setClassName']),
     calculateHealing(spellRanks) {
       // maps level to increase in healing power (based off egregious' calculator)
       let totemPlains = {
@@ -144,6 +146,7 @@ export default {
     },
   },
   mounted() {
+    this.setClassName('shaman');
     this.baseChartData = this.init(spellData);
   },
 }

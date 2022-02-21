@@ -60,6 +60,7 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
+import {mapMutations} from 'vuex';
 import BarChart from '../../chart.js';
 import SummaryTable from './../SummaryTable.vue';
 import {flashHeal as spellData} from '../../spells';
@@ -96,6 +97,7 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setClassName']),
     calculateHealing(spellRanks) {
       for (let i = 0; i < spellRanks.length; i++) {
         let spell = spellRanks[i];
@@ -125,6 +127,7 @@ export default {
     },
   },
   mounted() {
+    this.setClassName('priest');
     this.baseChartData = this.init(spellData);
   },
 }

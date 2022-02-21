@@ -2,9 +2,14 @@
   <div class="container" @mouseleave="removeHover">
     <div class="row">
       <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <router-link :to="{name:'who-fucked-up'}"
+            :class="{active: activeClass === 'who'}"
+            class="nav-link">Who Fucked Up?</router-link>
+        </li>
         <li class="nav-item" v-for="(_class, index) in ['priest', 'shaman', 'paladin']" :key="index"
             @mouseover="onHover(_class)">
-          <a class="nav-link" :class="{active: className === _class}" href="#" @click="select(_class)">
+          <a class="nav-link" :class="{active: activeClass === _class}" href="#" @click="select(_class)">
           {{ _class[0].toUpperCase() }}{{ _class.substring(1) }}</a>
         </li>
         <li class="nav-item">
@@ -14,7 +19,7 @@
     </div>
 
     <div class="row">
-      <ul class="nav" v-if="className === 'priest' && showSecondaryRow">
+      <ul class="nav" v-if="activeClass === 'priest' && showSecondaryRow">
         <li class="nav-item">
           <router-link :to="{name:'priest-time-to-oom'}" class="nav-link">Time to OOM</router-link>
         </li>
@@ -32,9 +37,12 @@
         </li>
       </ul>
 
-      <ul class="nav" v-if="className === 'shaman' && showSecondaryRow">
+      <ul class="nav" v-if="activeClass === 'shaman' && showSecondaryRow">
         <li class="nav-item">
           <router-link :to="{name:'shaman-time-to-oom'}" class="nav-link">Time to OOM</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link :to="{name:'af-simulation'}" class="nav-link">Ancestral Fortitude</router-link>
         </li>
         <li class="nav-item">
           <router-link :to="{name:'chain-heal'}" class="nav-link">Chain Heal</router-link>
@@ -47,7 +55,7 @@
         </li>
       </ul>
 
-      <ul class="nav" v-if="className === 'paladin' && showSecondaryRow">
+      <ul class="nav" v-if="activeClass === 'paladin' && showSecondaryRow">
         <li class="nav-item">
           <router-link :to="{name:'holy-light'}" class="nav-link">Holy Light</router-link>
         </li>
@@ -63,7 +71,7 @@
 
 <script>
 
-import {mapState, mapMutations} from 'vuex';
+import {mapState} from 'vuex';
 
 export default {
   name: 'NavigationHeader',
@@ -75,32 +83,42 @@ export default {
   },
   data() {
     return {
-      activeClass: 'priest',
+      activeClass: '',
       showSecondaryRow: false,
     };
   },
   methods: {
-    ...mapMutations(['setClassName']),
     select(className) {
-      if (this.className === className && this.showSecondaryRow) {
+      // if have time, should make onhover effects desktop only to avoid bugs when using on mobiel
+      if (this.activeClass === className && this.showSecondaryRow) {
         this.showSecondaryRow = false;
         return;
       }
-
-      this.setClassName(className);
+      this.activeClass = className
       this.showSecondaryRow = true;
     },
     onHover(className) {
-      this.setClassName(className);
+      this.activeClass = className
       this.showSecondaryRow = true;
     },
     removeHover() {
       this.showSecondaryRow = false;
+      // if we hover over and didnt select any links
+      if (this.className !== this.activeClass) {
+        this.activeClass = this.className;
+      }
     },
   },
   watch:{
     $route() {
       this.showSecondaryRow = false;
+    },
+    '$store.state.className': {
+      immediate: true,
+      handler() {
+        this.activeClass = this.className;
+        console.log(this.activeClass);
+      },
     },
   },
   mounted() {

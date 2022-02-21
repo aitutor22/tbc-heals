@@ -35,6 +35,12 @@ import HolyLight from
 import FlashOfLight from
   './components/paladin/FlashOfLight.vue';
 
+import AncestralFortitudeSimulation from
+  './components/shaman/AncestralFortitudeSimulation.vue';
+
+import WhoFuckedUp from
+  './components/WhoFuckedUp.vue';
+
 import {store} from './store';
 
 Vue.use(VueRouter)
@@ -52,6 +58,8 @@ const routes = [
   {path: '/healingwave', component: HealingWave, name: 'healing-wave'},
   {path: '/holylight', component: HolyLight, name: 'holy-light'},
   {path: '/flashoflight', component: FlashOfLight, name: 'flash-of-light'},
+  {path: '/ancestral-fortitude', component: AncestralFortitudeSimulation, name: 'af-simulation'},
+  {path: '/who-fucked-up', component: WhoFuckedUp, name: 'who-fucked-up'},
   {path: '*', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
 ];
 

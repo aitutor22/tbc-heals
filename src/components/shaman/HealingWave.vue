@@ -88,6 +88,7 @@
 
 <script>
 import {mapFields} from 'vuex-map-fields';
+import {mapMutations} from 'vuex';
 import BarChart from '../../chart.js';
 import SummaryTable from './../SummaryTable.vue';
 import {healingWave as spellData} from '../../spells';
@@ -110,6 +111,7 @@ export default {
   },
 
   computed: {
+    ...mapMutations(['setClassName']),
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'shamanOptions']),
     spells() {
       if (!this.baseChartData) return;
@@ -178,6 +180,7 @@ export default {
     },
   },
   mounted() {
+    this.setClassName('shaman');
     this.baseChartData = this.init(spellData);
   },
 }

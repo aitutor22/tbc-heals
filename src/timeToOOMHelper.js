@@ -252,7 +252,11 @@ export const oomMixin = {
       }
 
       otherSpirit = (this.oomOptions['kreegs'] ? 25 : 0) + idsSpirit;
-      this.oomMixinData['buffedSpirit'] = Math.floor((this.convertToNumber(this.oomOptions['spirit']) + 19 + 30 + 20 + otherSpirit)
+      // the value of base spirit in wowtooltip and 70upgrades already includes SoR
+      // so we don't wan to double count
+      let baseSpirit = this.convertToNumber(this.oomOptions['spirit']);
+      baseSpirit /= (this.oomOptions['sor'] ? 1.05 : 1);
+      this.oomMixinData['buffedSpirit'] = Math.floor((baseSpirit + 19 + 30 + 20 + otherSpirit)
         * (this.oomOptions['sor'] ? 1.05 : 1)
         * 1.1 * (this.oomOptions['enlightenment'] ? 1.05 : 1)
         * (this.oomOptions['isHuman'] ? 1.1 : 1));
