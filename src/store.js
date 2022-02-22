@@ -117,7 +117,12 @@ export const store = new Vuex.Store({
       'blessingLight': false,
       '2pT6': false,
       '4pT6': false,
-    }
+    },
+
+    deathAnalyzer: {
+      wclCode: '',
+      healerAssignments: {},
+    },
   },
   getters: {
     // Add the `getField` getter to the
@@ -135,6 +140,11 @@ export const store = new Vuex.Store({
     // Add the `updateField` mutation to the
     // `mutations` of your Vuex store instance.
     updateField,
+    resetDeathAnalyzer(state) {
+      console.log('resetting');
+      Vue.set(state['deathAnalyzer'], 'wclCode', '');
+      Vue.set(state['deathAnalyzer'], 'healerAssignments', {});
+    },
     setClassName(state, value) {
       Vue.set(this.state, 'className', value);
     },

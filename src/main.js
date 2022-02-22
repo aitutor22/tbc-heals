@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
 import VueRouter from 'vue-router'
+import {BootstrapVue} from 'bootstrap-vue';
+import vSelect from 'vue-select';
 
 import GreaterHeal from
   './components/priest/GreaterHeal.vue';
@@ -43,8 +45,16 @@ import WhoFuckedUp from
 
 import {store} from './store';
 
-Vue.use(VueRouter)
-Vue.config.productionTip = false
+// Import Bootstrap an BootstrapVue CSS files (order is important)
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
+import 'vue-select/dist/vue-select.css';
+
+// Make BootstrapVue available throughout your project
+Vue.use(BootstrapVue);
+Vue.component('v-select', vSelect);
+Vue.use(VueRouter);
+Vue.config.productionTip = false;
 
 const routes = [
   {path: '/priestoom', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
