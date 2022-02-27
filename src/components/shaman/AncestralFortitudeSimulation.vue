@@ -1,10 +1,19 @@
 <template>
   <div class="container">
     <div class="row">
-      <p>This calculator attempts to attribute an additional value to crit based on Ancestral Fortitude/Inspiration, and is based off Lovelace's theorycrafting in Shaman Discord. Lovelace's explanation is as follows:</p>
-      <blockquote class="blockquote">
+      <p>This calculator attempts to attribute an additional value to crit based on Ancestral Fortitude/Inspiration, and is based off Lovelace's theorycrafting in Shaman Discord.</p>
+      <blockquote>
         <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+          Although it doesn't show up on your healing meter, the ancestral fortitude buff from your shaman's critical heals reduces physical damage taken by your tanks and others, and should be still considered as providing effective healing.
+        </p>
+        <br><br>
+        <p>
+          This manner of healing is of course different from that of your direct healing spells: there is never any overhealing, and since it is pre-emptive can help prevent one-shots from hard hitting bosses (think of it as working like earth shield). Increasing your crit% from different gear or consume choices will increase the average uptime of the buff, and thus can improve your overall effective healing and raid performance, even if on paper your HPS is marginally lower. <b>Thinking about this is particularly important in T6, where the bosses hit harder, and healing gear has noticeably less crit rating than in earlier tiers</b>.
+        </p>
+        <br><br>
+        <p>
+          Using this calculator will let you estimate, given the parameters of your raid, how much +healing on gear provides the same effective healing while using Chain Heal rank 4 or 5 as 1 point of crit rating. - 
+          <span class="community-yellow"><b>Lovelace</b></span>
         </p>
       </blockquote>
       <p>
@@ -64,28 +73,32 @@
       </div>
     </div>
     <div class="row">
-      <button class="btn btn-success" @click="runSimulation">
-        <span v-if="!fetching">Run Simulation</span>
-        <span v-else>Loading...</span>
-      </button>
+      <div class="col-4">
+        <button class="btn btn-success" @click="runSimulation">
+          <span v-if="!fetching">Run Simulation</span>
+          <span v-else>Loading...</span>
+        </button>
+      </div>
     </div>
 
-    <div class="row slight-offset-top" v-if="showResults">
-      <div class="col-12">
-        <ul>
-          <li class="blue">DTPS Mitigated due to +1% Crit: <b>{{ dtpsMitigated }}</b></li>
-          <li class="blue">Net HPS equivalent due to +1% Crit: <b>{{ hpsEquivalent }}</b></li>
-          <li class="blue">Shaman +Heal value of AF for +1 crit rating: <b>{{ statweightShaman }}</b></li>
-          <li class="blue">Shaman +Heal value for +1 crit rating: <b>{{ statweightShaman + 0.75}}</b></li>
-          <hr>
-          <li>Base AF Uptime: <b>{{ convertPercentage(baseUptime) }}%</b></li>
-          <li>AF Uptime with +1% Crit: <b>{{ convertPercentage(higherCritUptime) }}%</b></li>
-          <li>AF Uptime Gain with +1% Crit: <b>{{ convertPercentage(difference) }}%</b></li>
-          <li>Base Damage Reduction: <b>{{ convertPercentage(baseDR) }}%</b></li>
-          <li>Damage Reduction with AF: <b>{{ convertPercentage(afDR) }}%</b></li>
-          <li>DR% Gain when AF is up: <b>{{ convertPercentage(differenceDR) }}%</b></li>
-          <li>DR% Gain with +1% Crit: <b>{{ convertPercentage(marginalDRGainFromOnePercentCrit) }}%</b></li>
-        </ul>
+    <div ref="results">
+      <div class="row slight-offset-top" v-show="showResults">
+        <div class="col-12">
+          <ul>
+            <li class="blue">DTPS Mitigated due to +1% Crit: <b>{{ dtpsMitigated }}</b></li>
+            <li class="blue">Net HPS equivalent due to +1% Crit: <b>{{ hpsEquivalent }}</b></li>
+            <li class="blue">Shaman +Heal value of AF for +1 crit rating: <b>{{ statweightShaman }}</b></li>
+            <li class="blue">Shaman +Heal value for +1 crit rating: <b>{{ statweightShaman + 0.75}}</b></li>
+            <hr>
+            <li>Base AF Uptime: <b>{{ convertPercentage(baseUptime) }}%</b></li>
+            <li>AF Uptime with +1% Crit: <b>{{ convertPercentage(higherCritUptime) }}%</b></li>
+            <li>AF Uptime Gain with +1% Crit: <b>{{ convertPercentage(difference) }}%</b></li>
+            <li>Base Damage Reduction: <b>{{ convertPercentage(baseDR) }}%</b></li>
+            <li>Damage Reduction with AF: <b>{{ convertPercentage(afDR) }}%</b></li>
+            <li>DR% Gain when AF is up: <b>{{ convertPercentage(differenceDR) }}%</b></li>
+            <li>DR% Gain with +1% Crit: <b>{{ convertPercentage(marginalDRGainFromOnePercentCrit) }}%</b></li>
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -140,6 +153,15 @@ export default {
   },
   methods: {
     ...mapMutations(['setClassName']),
+    goto(refName) {
+      // https://shouts.dev/articles/vuejs-scroll-to-elements-on-the-page
+      var element = this.$refs[refName];
+      var top = element.offsetTop;
+      console.log(element);
+      console.log('going');
+      console.log(top);
+      window.scrollTo(0, top);
+    },
     convertPercentage(num) {    
       return +(Math.round(num * 100 + "e+1")  + "e-1");
     },
@@ -185,6 +207,11 @@ export default {
             * this.convertToNumber(this.tank['rawDTPS']));
           this.hpsEquivalent = this.roundToOne(this.dtpsMitigated / (1 - this.player['overhealPercent'] / 100));
           this.statweightShaman = this.roundToOne(this.hpsEquivalent * 60 / (1.73 * this.player['cpm'] * 22.1));
+
+          // need to have a slight delay otherwise wont work
+          setTimeout(() => {
+            this.goto('results');
+          }, 100);
         })
         .catch(function (error) {
           app.fetching = false;
@@ -213,7 +240,26 @@ export default {
   margin-left: 10px;
 }
 
-.blockquote {
-  background: #cbcbcb;
+blockquote {
+  background: #f9f9f9;
+  border-left: 10px solid #ccc;
+  margin: 1em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
+}
+blockquote:before {
+  color: #ccc;
+  content: open-quote;
+  font-size: 4em;
+  line-height: 0.1em;
+  margin-right: 0.25em;
+  vertical-align: -0.4em;
+}
+blockquote p {
+  display: inline;
+}
+
+.community-yellow {
+  color: #ffd500;
 }
 </style>

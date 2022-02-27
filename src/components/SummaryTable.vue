@@ -1,6 +1,8 @@
 <template>
   <div class="row table-container">
-    <table class="table table-striped">
+    <b-table striped hover :items="tableData"></b-table>
+<!--     <table class="table table-striped">
+    <b-table-simple hover small caption-top responsive>
       <tr>
         <th>Rank</th>
         <th>Mana</th>
@@ -14,20 +16,21 @@
         <th>Efficiency</th>
         <th v-if="showInspiration">Inspiration %</th>
       </tr>
-      <tr v-for="spell in spells['ranks']" :key="spell['rank']">
-        <td>{{ spell['rank'] }}</td>
-        <td>{{ spell['mana'] }}</td>
-        <td>{{ spell['castTime'] }}</td>
-        <td>{{ spell['baseHeal'] }}</td>
-        <td>{{ spell['bonusHeal'] }}</td>
-        <td v-if="spells['direct']">{{ spell['critHeal'] }}</td>
-        <td v-if="spells['hot']">{{ spell['tick'] }}</td>
-        <td>{{ spell['totalHeal'] }}</td>
-        <td>{{ spell['hps'] }}</td>
-        <td>{{ spell['efficiency'] }}</td>
-        <td  v-if="showInspiration">{{ spell['inspiration_uptime'] }}%</td>
+      <b-tr v-for="spell in spells['ranks']" :key="spell['rank']">
+        <b-td>{{ spell['rank'] }}</b-td>
+        <b-td>{{ spell['mana'] }}</b-td>
+        <b-td>{{ spell['castTime'] }}</b-td>
+        <b-td>{{ spell['baseHeal'] }}</b-td>
+        <b-td>{{ spell['bonusHeal'] }}</b-td>
+        <b-td v-if="spells['direct']">{{ spell['critHeal'] }}</b-td>
+        <b-td v-if="spells['hot']">{{ spell['tick'] }}</b-td>
+        <b-td>{{ spell['totalHeal'] }}</b-td>
+        <b-td>{{ spell['hps'] }}</b-td>
+        <b-td>{{ spell['efficiency'] }}</b-td>
+        <b-td  v-if="showInspiration">{{ spell['inspiration_uptime'] }}%</b-td>
       </tr>
     </table>
+    </b-table-simple> -->
     <p>
       This project is greatly inspired by <a href="https://github.com/Tegas/legacy-sim">Tegas' Legacy WoW Sim.</a>
       <span v-if="spells['class'] == 'priest'">
@@ -55,10 +58,43 @@ export default {
     showInspiration() {
       if (!this.spells) return;
       return this.spells['direct'] && (this.spells['class'] === 'priest' || this.spells['class'] === 'shaman');
+    },
+    tableData() {
+      if (!this.spells) return;
+      let results = [];
+      for (let i = 0; i < this.spells['ranks'].length; i++) {
+        let entry = {};
+        let spell = this.spells['ranks'][i];
+        entry['rank'] = spell['rank'];
+        entry['mana'] = spell['mana'];
+        entry['castTime'] = spell['castTime'];
+        entry['baseHeal'] = spell['baseHeal'];
+        entry['bonusHeal'] = spell['bonusHeal'];
+        if (this.spells['direct']) {
+          entry['critHeal'] = spell['critHeal'];
+        }
+        if (this.spells['hot']) {
+          entry['tick'] = spell['tick'];
+        }
+        entry['totalHeal'] = spell['totalHeal'];
+        entry['hps'] = spell['hps'];
+        entry['efficiency'] = spell['efficiency'];
+        if (this.showInspiration) {
+          entry['inspiration_uptime'] = spell['inspiration_uptime'];
+        }
+        results.push(entry);
+      }
+      return results;
     }
   },
   data() {
     return {
+      items: [
+        { age: 40, first_name: 'Dickerson', last_name: 'Macdonald' },
+        { age: 21, first_name: 'Larsen', last_name: 'Shaw' },
+        { age: 89, first_name: 'Geneva', last_name: 'Wilson' },
+        { age: 38, first_name: 'Jami', last_name: 'Carney' }
+      ],
     };
   },
   methods: {

@@ -3,9 +3,9 @@
     <div class="row">
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <router-link :to="{name:'who-fucked-up'}"
+          <router-link :to="{name:'death-analyzer'}"
             :class="{active: activeClass === 'who'}"
-            class="nav-link">Who Fucked Up?</router-link>
+            class="nav-link">Death Analyzer</router-link>
         </li>
         <li class="nav-item" v-for="(_class, index) in ['priest', 'shaman', 'paladin']" :key="index"
             @mouseover="onHover(_class)">

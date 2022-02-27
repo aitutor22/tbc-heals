@@ -40,8 +40,8 @@ import FlashOfLight from
 import AncestralFortitudeSimulation from
   './components/shaman/AncestralFortitudeSimulation.vue';
 
-import WhoFuckedUp from
-  './components/WhoFuckedUp.vue';
+import DeathAnalyzer from
+  './components/DeathAnalyzer.vue';
 
 import {store} from './store';
 
@@ -69,7 +69,7 @@ const routes = [
   {path: '/holylight', component: HolyLight, name: 'holy-light'},
   {path: '/flashoflight', component: FlashOfLight, name: 'flash-of-light'},
   {path: '/ancestral-fortitude', component: AncestralFortitudeSimulation, name: 'af-simulation'},
-  {path: '/who-fucked-up', component: WhoFuckedUp, name: 'who-fucked-up'},
+  {path: '/death-analyzer', component: DeathAnalyzer, name: 'death-analyzer'},
   {path: '*', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
 ];
 
