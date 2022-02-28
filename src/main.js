@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import App from './App.vue'
 import VueRouter from 'vue-router'
-import {BootstrapVue} from 'bootstrap-vue';
+import {BootstrapVue, IconsPlugin} from 'bootstrap-vue';
 import vSelect from 'vue-select';
 
 import GreaterHeal from
@@ -52,6 +52,7 @@ import 'vue-select/dist/vue-select.css';
 
 // Make BootstrapVue available throughout your project
 Vue.use(BootstrapVue);
+Vue.use(IconsPlugin)
 Vue.component('v-select', vSelect);
 Vue.use(VueRouter);
 Vue.config.productionTip = false;
@@ -70,7 +71,7 @@ const routes = [
   {path: '/flashoflight', component: FlashOfLight, name: 'flash-of-light'},
   {path: '/ancestral-fortitude', component: AncestralFortitudeSimulation, name: 'af-simulation'},
   {path: '/death-analyzer', component: DeathAnalyzer, name: 'death-analyzer'},
-  {path: '*', component: PriestTimeToOOM, name: 'priest-time-to-oom'},
+  {path: '*', component: DeathAnalyzer, name: 'death-analyzer'},
 ];
 
 const router = new VueRouter({

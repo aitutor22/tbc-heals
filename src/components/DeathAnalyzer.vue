@@ -1,50 +1,52 @@
 <template>
   <div class="container">
-    <div class="row" v-if="state !== 2">
-      <h1>This tool is currently in Alpha and please bear with bugs.</h1>
+    <div class="row mt-3 explanation" v-if="state !== 2">
       <p>
-        The purpose of this tool is to quickly identify reasons for a tank death so the raid can improve on the next attempt. Ideal times to use are in between attempts if there are live-logs, or post raid reviews.
+        Reviewing tank death logs is a time-consuming activity. This tool checks the three common causes of tank deaths
+        (<a class="dotted" v-b-tooltip.hover title="Direct Heals exclude HOTS, Earth Shield, Chain Heal bounces, etc"><b>lack of direct heals</b></a>, 
+        <a class="dotted" v-b-tooltip.hover title="Tracks if there are 80% uptime of 3x lifebloom stacks"><b>3x lifeblooms</b></a>, or
+        <a class="dotted" v-b-tooltip.hover title="Demo shout, Thunderclap, Scorpid Sting"><b>debuffs</b></a>), helping a raid improve on the next attempt.
       </p>
       <p>
-        Most tanks deaths are due to 1) lack of direct heals, 2) no 3x stacks lifeblooms, and 3) lack of debuffs. The tool aims to resolves these three problems, so tank deaths only result from unavoidable RNG like taking a blue beam from Illidan or facing Vaelastrasz in Diamond Flask gear.
+        Special thanks to Frakensteak for teaching me how to evaluate lifeblooms. For more detailed lifeblooms analysis, <a href="http://lbthree-calc.herokuapp.com/">check out his tool</a>. If you see any bugs, please message Trollhealer (Arugal) on Discord.
       </p>
-
-      <p>
-        To use, go to WCL and select a specific death for a specific fight (e.g. https://classic.warcraftlogs.com/reports/yGHQT6hCzWPjZNaK/#fight=31&type=deaths&source=25&death=1). Note: do not clip timings when passing in the link.
-      </p>
-      <p>
-        The tool will also display what each healer was doing while the tank was dying, and will highlight when an assigned healer isn't healing the tank if he or she has less than 95% health.
-      </p>
-
-      <b>Notes:</b>
-      <ul>
-        <li>
-          If you use the <b>RESET</b> button to clear results, the tool will remember your healer assignments if you pass different deaths from the same log. To clear healer assignments, reload the page.
-        </li>
-        <li>
-          The following are not considered direct heals: HOTS (e.g. Renew, Rejuvenation, Lifebloom), Earth Shield, Judgement of Light, and Chain heal bounces.
-        </li>
-        <li>
-          Lifeblooms are considered to be on tank if there are 3x stacks of Lifeblooms for at least 80% of the death window.
-        </li>
-        <li>
-          Similarly, debuffs/buffs are considered to be applied if they are on their target for at least 80% of the death window.
-        </li>
-        <li>
-          <b>HEALER CAST ACTIVITY</b> tab will ignore consumes and cooldowns (e.g. mana pots, Water Shield, Berserking), as well as spells casted on anyone that is not in the raid (e.g. damage spells, snowballs).
-        </li>
-      </ul>
     </div>
-    <div class="row" v-if="state !== 2">
-      <div class="col-12">
-        <div class="input-group mb-2" style="width: 70%">
-          <input type="text" class="form-control" v-model="url"
-            v-on:keyup.enter="pullInitialLogs"
-            placeholder="Enter WCL URL...">
-          <button class="btn btn-success" @click="pullInitialLogs">
-            <span v-if="!fetching">Pull Logs</span>
-            <span v-else>Loading...</span>
-          </button>
+
+    <div class="input-wcl-container">
+      <div class="row help-container" v-if="isUrlError">
+        <div class="col-12">
+          <p class="red"><i>{{ urlErrorMessage }}</i></p>
+          <img :src="require('../assets/help.png')" class="help-pic" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 input-wcl-subcontainer">
+          <div class="input-group mb-2" style="width: 70%">
+            <input type="text" class="form-control input-url" v-model="url"
+              v-on:keyup.enter="pullInitialLogs"
+              placeholder="Enter WCL link for a specfic death on a specific fight...">
+            <button class="btn btn-success" @click="pullInitialLogs">
+              <span v-if="!fetching">Pull Logs</span>
+              <span v-else>Loading...</span>
+            </button>
+          </div>
+        </div>
+        <div class="col-12">
+          <a class="faq-link" @click="showFaq = !showFaq">Frequently Asked Questions + Notes</a>
+          <ul class="faq-text" v-if="showFaq">
+            <li>
+              Example: https://classic.warcraftlogs.com/reports/yGHQT6hCzWPjZNaK/#fight=31&type=deaths&source=25&death=1. Note, do not clip timings when passing in the link.
+            </li>
+            <li>
+              If you pass in a second death from the same log, the tool will remember your healer assignments. To clear healer assignments, reload the page.
+            </li>
+            <li>
+              Buffs/debuffs are considered to be on tank if they are on their target for at least 80% of the death window.
+            </li>
+            <li>
+              <b>CAST ACTIVITY</b> tab will ignore consumes and cooldowns (e.g. Mana Pots) as well as spells casted on anyone that is not in the raid (e.g. damage spells).
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -64,12 +66,14 @@
           </div>
         </div>
       </div>
-      <b-button class="mt-3" block @click="setHealerAssignments">Set Assignments</b-button>
+      <div>
+        <b-button class="mt-3" block variant="success" @click="setHealerAssignments" style="width: 100%">
+          Set Assignments
+        </b-button>
+      </div>
     </b-modal>
 
     <div class="results" v-if="state === 2">
-    <!-- <div class="results"> -->
-      <b-button class="mt-3" variant="success" block @click="resetAndClearUrl">Reset</b-button>
       <div class="row">
         <ul>
           <li>
@@ -98,20 +102,26 @@
           <li v-else>
             <b>Used Ironshield Potion?</b> <b class="red">No</b>
           </li>
+          <li v-if="results['missing_debuffs'].length > 0">
+            <b>Missing Debuffs: <span class="red">{{ results['missing_debuffs'].join(' and ') }}</span></b>
+          </li>
+          <li v-else>
+            <b>Missing Debuffs: </b> All buffs present.
+          </li>
         </ul>
       </div>
       <div class="row">
         <hr>
-        <h4 class="title">Healer Cast Activity</h4>
+        <h5 class="title">Cast Activity</h5>
         <b-tabs content-class="mt-3">
           <b-tab title="Assigned Healers" active>
             <div class="row">
-              <div class="col-6" v-for="(healerCast, index) in assignedHealerCasts" :key="index">
-                <b-table :items="healerCast"></b-table>
-              </div>
               <span v-if="Object.keys(assignedHealerCasts).length === 0">
                 No assigned healer. Check <b>"OTHER HEALERS"</b> tab to see what unassigned healers were doing.
               </span>
+              <div class="col-6" v-for="(healerCast, index) in assignedHealerCasts" :key="index">
+                <b-table :items="healerCast"></b-table>
+              </div>
             </div>
           </b-tab>
           <b-tab title="Other Healers">
@@ -153,6 +163,9 @@ export default {
       assignedHealerCasts: {},
       otherHealerCasts: {},
       deathDetails: {},
+      isUrlError: false,
+      urlErrorMessage: '',
+      showFaq: false,
     };
   },
 
@@ -189,10 +202,6 @@ export default {
     roundToOne(num) {    
       return +(Math.round(num + "e+1")  + "e-1");
     },
-    resetAndClearUrl() {
-      this.reset();
-      this.url = '';
-    },
     reset() {
       this.state = 0;
       this.fetching = false;
@@ -202,21 +211,23 @@ export default {
       this.deathDetails = {};
     },
     pullInitialLogs() {
+      this.reset();
+      this.isUrlError = false;
       if (this.url.indexOf('death=') === -1 && this.url.indexOf('source=') === -1) {
-        alert('Invalid url - missing "death=xx"');
+        this.urlErrorMessage = 'Invalid url - missing "death=xx". Please see the image below for help.';
+        this.isUrlError = true;
         return;
       } else if (this.url.indexOf('start=') > -1 || this.url.indexOf('end=') > -1){
-        alert('Invalid url - do not clip timings');
+        this.urlErrorMessage = 'Invalid url - do not clip timings. Please see the image below for help.';
+        this.isUrlError = true;
         return;
       }
-
-      this.reset();
 
       this.fetching = true;
       let app = this;
       axios
         .post('http://localhost:8000/main/death-analyzer/player-details/', {url: this.url})
-        // .post('http://spire-druid-prio.herokuapp.com/main/blended-mana/', {url: url})
+        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/player-details/', {url: this.url})
         .then((response) => {
           app.fetching = false;
           app.players = response.data['players'];
@@ -237,6 +248,7 @@ export default {
         });
     },
     showHealerAssignmentsModal() {
+      this.state = 1;
       this.$bvModal.show('bv-modal-example');
     },
     setHealerAssignments() {
@@ -249,6 +261,7 @@ export default {
       let app = this;
       axios
         .post('http://localhost:8000/main/death-analyzer/analyze/', {
+        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/analyze/', {
           url: this.url,
           healerAssignments: this.deathAnalyzer['healerAssignments'],
         })
@@ -271,14 +284,66 @@ export default {
   },
   mounted() {
     this.setClassName('who');
+    // sets events
+    window.addEventListener('keydown', (e) => {
+      if (this.state !== 1) return;
+      if (e.key === 'Enter') {
+        this.setHealerAssignments();
+      }
+    });
   },
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.blue {
-  color: blue;
+.dotted {
+  border-bottom: 2px dotted #403a3a;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+   white-space: nowrap;
+}
+
+.explanation {
+  font-size: 1.2em;
+}
+
+.input-wcl-container {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.input-wcl-subcontainer {
+  display: flex;
+  justify-content: center;
+}
+
+.input-url {
+  border-color: #403a3a;
+}
+
+.faq-link {
+  cursor: pointer
+}
+
+.faq-text {
+  text-align: left;
+  margin-top: 10px;
+}
+
+.help-container {
+  margin-top: -20px;
+  margin-bottom: 20px;
+}
+
+.help-container p {
+  margin-bottom: 0px;
+}
+
+.help-pic {
+  max-width: 600px;
 }
 
 .slight-offset-top {
@@ -326,6 +391,26 @@ export default {
   color: #a4a5a8!important;
 }
 
+.Warrior {
+  color: #c79c6e!important;
+}
+
+.Rogue {
+  color: #fff569!important;
+}
+
+.Hunter {
+  color: #abd473!important;
+}
+
+.Mage {
+  color: #69ccf0!important;
+}
+
+.Warlock {
+  color: #9482c9!important;
+}
+
 .red {
   color: red;
 }
@@ -334,7 +419,4 @@ export default {
   font-size: 2em;
 }
 
-.title {
-  color: blue;
-}
 </style>
