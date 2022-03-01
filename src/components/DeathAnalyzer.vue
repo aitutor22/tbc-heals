@@ -46,6 +46,9 @@
             <li>
               <b>CAST ACTIVITY</b> tab will ignore consumes and cooldowns (e.g. Mana Pots) as well as spells casted on anyone that is not in the raid (e.g. damage spells).
             </li>
+            <li>
+              There are potential bugs tracking lifeblooms with double rdruid comps, and I'm ignoring this temporarily as this isn't a meta comp.
+            </li>
           </ul>
         </div>
       </div>
@@ -73,61 +76,130 @@
       </div>
     </b-modal>
 
-    <div class="results" v-if="state === 2">
-      <div class="row">
-        <ul>
-          <li>
-            <b>{{ deathDetails['name'] }}</b> died over {{ deathWindow }}s
-          </li>
-          <li>
-            <b>Total Damage Taken:</b> {{ formatBigNumbers(deathDetails['damage']['total']) }} (O: {{ formatBigNumbers(deathDetails['overkill']) }})
-          </li>
-          <li>
-            <b>Direct Healing Received:</b> {{ formatBigNumbers(results['direct_healing']['total']) }}
-              <span v-if="results['direct_healing']['sources'].length > 0">
-                (from {{ results['direct_healing']['sources'].join(' and ') }})
+    <div class="row align-center slight-offset-bottom" v-if="state === 2">
+      <div class="col-10">
+        <b-list-group>
+          <b-list-group-item href="#" class="flex-column align-items-start" :variant="tankDamageSummaryWarning">
+            <div class="d-flex w-100 justify-content-between">
+              <h5 class="mb-1">DAMAGE SPIKES</h5>
+            </div>
+            <p class="mb-2">
+              <player :pclass="deathDetails['type']" :pname="deathDetails['name']"></player>
+              took {{ formatBigNumbers(deathDetails['damage']['total']) }} damage (O: {{ formatBigNumbers(deathDetails['overkill']) }}) and died over {{ deathWindow }}s
+              <span :class="{red: results['tank_damage_summary']['dtps'] >= THRESHOLD['dtps']}">
+                ({{ roundToOne(results['tank_damage_summary']['dtps']) }}k DTPS).</span>
+              <span v-if="results['tank_damage_summary']['num_crit'] > THRESHOLD['numCrit']" class="red">
+                NOT CRIT CAPPED!!!!!
               </span>
-          </li>
-          <li v-if="results['has_max_lifebloom_stacks']">
-            <b>Had 3x Lifebloom?</b> Yes
-          </li>
-          <li v-else>
-            <b>Had 3x Lifebloom?</b> <b class="red">
-              <span class="skull">💀💀</span>NO LB<span class="skull">💀💀</span>
-            </b>
-          </li>
-          <li v-if="results['has_ironshield']">
-            <b>Used Ironshield Potion?</b> Yes
-          </li>
-          <li v-else>
-            <b>Used Ironshield Potion?</b> <b class="red">No</b>
-          </li>
-          <li v-if="results['missing_debuffs'].length > 0">
-            <b>Missing Debuffs: <span class="red">{{ results['missing_debuffs'].join(' and ') }}</span></b>
-          </li>
-          <li v-else>
-            <b>Missing Debuffs: </b> All buffs present.
-          </li>
-        </ul>
+            </p>
+            <p class="mb-2">
+              Over the entire fight, <a class="dotted" :class="{red: results['tank_damage_summary']['tmi'] >= THRESHOLD['tmi']}" v-b-tooltip.hover title="Theck-Meloree Index is a tanking metric quantifying the “smoothness” of a tank’s damage intake based on spike magnitude and frequency.">
+                TMI was {{ results['tank_damage_summary']['tmi'] }}% (i.e. tank was taking damage spikes of up to {{ results['tank_damage_summary']['tmi'] }}% of max health over 5s)</a>
+            </p>
+          </b-list-group-item>
+          <b-list-group-item href="#" class="flex-column align-items-start"
+            :variant="lifebloomsWarning">
+            <div class="d-flex w-100 justify-content-between">
+              <h5 class="mb-1 dotted" v-b-tooltip.hover title="Tracks if there are 80% uptime of 3x lifebloom stacks">3x LIFEBLOOM?</h5>
+            </div>
+
+            <p class="mb-1" v-if="results['hots_summary']['has_max_lifebloom_stacks']">
+                <span>Yes</span>
+            </p>
+            <p class="mb-1 red" v-else>
+                <span class="skull">💀💀</span>NO LB<span class="skull">💀💀</span>
+            </p>
+            <small class="text-muted">Potentially bugged if there are double rdruids</small>
+          </b-list-group-item>
+
+          <b-list-group-item href="#" class="flex-column align-items-start"
+            :variant="directHealingWarning">
+            <div class="d-flex w-100 justify-content-between">
+              <h5 class="mb-1">DIRECT HEALS</h5>
+              <small class="text-muted">Scroll down to see each healer's casts</small>
+            </div>
+
+            <p class="mb-2">
+              <span>
+                <player :pclass="deathDetails['type']" :pname="deathDetails['name']"></player> received {{ formatBigNumbers(results['direct_healing']['total']) }}
+                <a class="dotted" v-b-tooltip.hover title="Direct Heals exclude HOTS, Earth Shield, Chain Heal bounces, etc"><b>direct healing</b></a>
+                over {{ deathWindow }}s
+              </span>
+              <span :class="{'red': directHealingLine}">
+                ({{ results['direct_healing']['percentage_from_assigned_healers'] }}% from assigned healers)
+              </span>
+            </p>
+
+            <p class="mb-2">
+              <span>
+                <b>Assigned Healers: </b>
+                <span v-for="healer, index in results['direct_healing']['sources']['assigned_healers']" :key="index">
+                  <player :pclass="healer['type']" :pname="healer['name']"></player> ({{ formatBigNumbers(healer['amount']) }})
+                  <span v-if="index < results['direct_healing']['sources']['assigned_healers'].length - 1"> and </span>
+                </span>
+              </span>
+            </p>
+
+            <p class="mb-2">
+              <span>
+                <b>Other Healers: </b>
+                <span v-for="healer, index in results['direct_healing']['sources']['other_healers']" :key="index">
+                  <player :pclass="healer['type']" :pname="healer['name']"></player> ({{ formatBigNumbers(healer['amount']) }})
+                  <span v-if="index < results['direct_healing']['sources']['other_healers'].length - 1"> and </span>
+                </span>
+              </span>
+            </p>
+          </b-list-group-item>
+
+          <b-list-group-item href="#" class="flex-column align-items-start"
+            :variant="potionsWarning">
+            <div class="d-flex w-100 justify-content-between">
+              <h5 class="mb-1 dotted" v-b-tooltip.hover title="Tracks Demo shout, Thunderclap, Scorpid Sting debuffs. As well as Ironshield potion usage.">DEBUFFS & OTHERS</h5>
+            </div>
+            <p class="mb-2" v-if="results['missing_debuffs'].length > 0">
+              <b>Missing Debuffs: <span class="red">{{ results['missing_debuffs'].join(' and ') }}</span></b>
+            </p>
+            <p class="mb-2" v-else>
+              <b>Missing Debuffs: </b> All buffs present.
+            </p>
+            <p class="mb-2" v-if="results['has_ironshield']">
+              <b>Used Ironshield Potion?</b> Yes
+            </p>
+            <p class="mb-2" v-else>
+              <b>Used Ironshield Potion?</b> <b class="red">No</b>
+            </p>
+          </b-list-group-item>
+        </b-list-group>
       </div>
+    </div>
+
+    <div class="results" v-if="state === 2">
       <div class="row">
         <hr>
         <h5 class="title">Cast Activity</h5>
-        <b-tabs content-class="mt-3">
+        <b-tabs pills content-class="mt-3">
           <b-tab title="Assigned Healers" active>
             <div class="row">
               <span v-if="Object.keys(assignedHealerCasts).length === 0">
                 No assigned healer. Check <b>"OTHER HEALERS"</b> tab to see what unassigned healers were doing.
               </span>
               <div class="col-6" v-for="(healerCast, index) in assignedHealerCasts" :key="index">
-                <b-table :items="healerCast"></b-table>
+                <b-table :items="healerCast">
+                  <template #cell(event)="data">
+                    <span v-html="data.value"></span>
+                  </template>
+                </b-table>
               </div>
             </div>
           </b-tab>
           <b-tab title="Other Healers">
             <div class="row">
               <div class="col-6" v-for="(healerCast, index) in otherHealerCasts" :key="index">
-                <b-table :items="healerCast"></b-table>
+                <b-table :items="healerCast">
+                  <template #cell(event)="data">
+                    <span v-html="data.value"></span>
+                  </template>
+                </b-table>
               </div>
             </div>
           </b-tab>
@@ -142,12 +214,15 @@
 import axios from 'axios';
 import {mapFields} from 'vuex-map-fields';
 import {mapMutations} from 'vuex';
+import Player from './Player.vue';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
 
 export default {
   name: 'DeathAnalyzer',
-  components: {},
+  components: {
+    Player: Player
+  },
   props: {
   },
   data() {
@@ -166,6 +241,16 @@ export default {
       isUrlError: false,
       urlErrorMessage: '',
       showFaq: false,
+      // various thresholds to make a text show up as red
+      THRESHOLD: {
+        // how much dtps tank takes (thousands)
+        dtps: 10,
+        // moment there is > 0 crit, implies not crit cap
+        numCrit: 0,
+        // if less than 30% of directHealing comes from assigned healers, turns red
+        directHealing: 30,
+        tmi: 120,
+      },
     };
   },
 
@@ -189,7 +274,27 @@ export default {
     deathWindow() {
       if (this.deathDetails === {}) return;
       return this.roundToOne(this.deathDetails['deathWindow'] / 1000);
-    }
+    },
+    tankDamageSummaryWarning() {
+      if (this.state !== 2) return;
+      return this.results['tank_damage_summary']['issue_warning'] ? 'danger' : '';
+    },
+    lifebloomsWarning() {
+      if (this.state !== 2) return;
+      return !this.results['hots_summary']['has_max_lifebloom_stacks'] ? 'danger' : 'success';
+    },
+    directHealingWarning() {
+      if (this.state !== 2) return;
+      return this.results['direct_healing']['issue_warning'] ? 'danger' : '';
+    },
+    directHealingLine() {
+      if (this.state !== 2) return;
+      return this.results['direct_healing']['percentage_from_assigned_healers'] <= this.THRESHOLD['directHealing'];
+    },
+    potionsWarning() {
+      if (this.state !== 2) return;
+      return this.results['missing_debuffs'].length === 0 && this.results['has_ironshield'] ? 'success' : 'danger';
+    },
   },
   methods: {
     ...mapMutations(['setClassName', 'resetDeathAnalyzer']),
@@ -226,8 +331,8 @@ export default {
       this.fetching = true;
       let app = this;
       axios
-        .post('http://localhost:8000/main/death-analyzer/player-details/', {url: this.url})
-        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/player-details/', {url: this.url})
+        // .post('http://localhost:8000/main/death-analyzer/player-details/', {url: this.url})
+        .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/player-details/', {url: this.url})
         .then((response) => {
           app.fetching = false;
           app.players = response.data['players'];
@@ -243,7 +348,7 @@ export default {
         })
         .catch(function (error) {
           app.fetching = false;
-          console.log(error.toJSON());
+          console.log(error);
           alert('Error fetching report from wcl');
         });
     },
@@ -260,8 +365,8 @@ export default {
       this.fetching = true;
       let app = this;
       axios
-        .post('http://localhost:8000/main/death-analyzer/analyze/', {
-        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/analyze/', {
+        // .post('http://localhost:8000/main/death-analyzer/analyze/', {
+        .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/analyze/', {
           url: this.url,
           healerAssignments: this.deathAnalyzer['healerAssignments'],
         })
@@ -272,13 +377,14 @@ export default {
           app.deathDetails = response.data['death_details'];
           app.assignedHealerCasts = response.data['assigned_healers'];
           app.otherHealerCasts = response.data['other_healers'];
+          console.log(response.data);
 
           app.state = 2;
         })
         .catch(function (error) {
           app.fetching = false;
-          console.log(error.toJSON());
-          alert('Error fetching report from wcl');
+          console.log(error.response.data);
+          alert('Error fetching report from wcl - ' + error.response.data['detail']);
         });
     },
   },
@@ -301,8 +407,15 @@ export default {
   border-bottom: 2px dotted #403a3a;
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+a.dotted {
   color: black;
-   white-space: nowrap;
+}
+
+.dotted.red {
+  color: red;
 }
 
 .explanation {
@@ -315,7 +428,7 @@ export default {
   text-align: center;
 }
 
-.input-wcl-subcontainer {
+.align-center {
   display: flex;
   justify-content: center;
 }
@@ -346,12 +459,21 @@ export default {
   max-width: 600px;
 }
 
+.input-wcl-subcontainer {
+  display: flex;
+  justify-content: center;
+}
+
 .slight-offset-top {
   margin-top: 20px;
 }
 
 .slight-offset-left {
   margin-left: 10px;
+}
+
+.slight-offset-bottom {
+  margin-bottom: 30px;
 }
 
 .blockquote {
@@ -413,6 +535,7 @@ export default {
 
 .red {
   color: red;
+  font-weight: 700;
 }
 
 .skull {
