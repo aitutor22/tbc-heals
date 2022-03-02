@@ -8,7 +8,7 @@
         <a class="dotted" v-b-tooltip.hover title="Demo shout, Thunderclap, Scorpid Sting"><b>debuffs</b></a>), helping a raid improve on the next attempt.
       </p>
       <p>
-        Special thanks to Frakensteak for teaching me how to evaluate lifeblooms. For more detailed lifeblooms analysis, <a href="http://lbthree-calc.herokuapp.com/">check out his tool</a>. If you see any bugs, please message Trollhealer (Arugal) on Discord.
+        Special thanks to Frankensteak for teaching me how to evaluate lifeblooms. For more detailed lifeblooms analysis, <a href="http://lbthree-calc.herokuapp.com/">check out his tool</a>. If you see any bugs, please message Trollhealer (Arugal) on Discord.
       </p>
     </div>
 
@@ -113,10 +113,11 @@
           </b-list-group-item>
 
           <b-list-group-item href="#" class="flex-column align-items-start"
-            :variant="directHealingWarning">
+            :variant="directHealingWarning"
+            @click="goto('castActivity')">
             <div class="d-flex w-100 justify-content-between">
               <h5 class="mb-1">DIRECT HEALS</h5>
-              <small class="text-muted">Scroll down to see each healer's casts</small>
+              <small class="text-muted"><b>Click to see each healer's casts</b></small>
             </div>
 
             <p class="mb-2">
@@ -173,10 +174,10 @@
       </div>
     </div>
 
-    <div class="results" v-if="state === 2">
+    <div class="results" v-if="state === 2" ref="castActivity">
       <div class="row">
         <hr>
-        <h5 class="title">Cast Activity</h5>
+        <h5 class="title">Healer Cast Activity</h5>
         <b-tabs pills content-class="mt-3">
           <b-tab title="Assigned Healers" active>
             <div class="row">
@@ -249,7 +250,7 @@ export default {
         numCrit: 0,
         // if less than 30% of directHealing comes from assigned healers, turns red
         directHealing: 30,
-        tmi: 120,
+        tmi: 150,
       },
     };
   },
@@ -386,6 +387,14 @@ export default {
           console.log(error.response.data);
           alert('Error fetching report from wcl - ' + error.response.data['detail']);
         });
+    },
+    goto(refName) {
+      // https://shouts.dev/articles/vuejs-scroll-to-elements-on-the-page
+      var element = this.$refs[refName];
+      var top = element.offsetTop;
+      console.log(element);
+      console.log(top);
+      window.scrollTo(0, top);
     },
   },
   mounted() {
