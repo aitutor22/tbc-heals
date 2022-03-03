@@ -111,7 +111,6 @@ export default {
   },
 
   computed: {
-    ...mapMutations(['setClassName']),
     ...mapFields(['healingPower', 'critChance', 'hastePercent', 'overhealPercent', 'shamanOptions']),
     spells() {
       if (!this.baseChartData) return;
@@ -126,6 +125,7 @@ export default {
     },
   },
   methods: {
+    ...mapMutations(['setClassName']),
     calculateHealing(spellRanks) {
       // maps level to increase in healing power (based off egregious' calculator)
       let totemRegrowth = {

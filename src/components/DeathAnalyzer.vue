@@ -5,10 +5,10 @@
         Reviewing tank death logs is a time-consuming activity. This tool checks the three common causes of tank deaths
         (<a class="dotted" v-b-tooltip.hover title="Direct Heals exclude HOTS, Earth Shield, Chain Heal bounces, etc"><b>lack of direct heals</b></a>, 
         <a class="dotted" v-b-tooltip.hover title="Tracks if there are 80% uptime of 3x lifebloom stacks"><b>3x lifeblooms</b></a>, or
-        <a class="dotted" v-b-tooltip.hover title="Demo shout, Thunderclap, Scorpid Sting"><b>debuffs</b></a>), helping a raid improve on the next attempt.
+        <a class="dotted" v-b-tooltip.hover title="Demo Shout, Thunderclap, Scorpid Sting"><b>debuffs</b></a>), helping a raid improve on the next attempt.
       </p>
       <p>
-        Special thanks to Frankensteak for teaching me how to evaluate lifeblooms. For more detailed lifeblooms analysis, <a href="http://lbthree-calc.herokuapp.com/">check out his tool</a>. If you see any bugs, please message Trollhealer (Arugal) on Discord.
+        Special thanks to Frankensteak for teaching me how to evaluate lifeblooms (for more detailed lifeblooms analysis, <a href="http://lbthree-calc.herokuapp.com/">check out his tool</a>). If you see any bugs, please message Trollhealer (Arugal) on Discord.
       </p>
     </div>
 
@@ -22,17 +22,20 @@
       <div class="row">
         <div class="col-12 input-wcl-subcontainer">
           <div class="input-group mb-2" style="width: 70%">
-            <input type="text" class="form-control input-url" v-model="url"
+            <input type="text" class="form-control input-url" v-model="deathAnalyzer['url']"
               v-on:keyup.enter="pullInitialLogs"
               placeholder="Enter WCL link for a specfic death on a specific fight...">
             <button class="btn btn-success" @click="pullInitialLogs">
               <span v-if="!fetching">Pull Logs</span>
               <span v-else>Loading...</span>
             </button>
+            <button class="btn btn-info" @click="reload">
+              Reset
+            </button>
           </div>
         </div>
         <div class="col-12">
-          <a class="faq-link" @click="showFaq = !showFaq">Frequently Asked Questions + Notes</a>
+          <a class="faq-link" v-if="state !== 2" @click="showFaq = !showFaq">Frequently Asked Questions + Notes</a>
           <ul class="faq-text" v-if="showFaq">
             <li>
               Example: https://classic.warcraftlogs.com/reports/yGHQT6hCzWPjZNaK/#fight=31&type=deaths&source=25&death=1. Note, do not clip timings when passing in the link.
@@ -155,7 +158,7 @@
           <b-list-group-item href="#" class="flex-column align-items-start"
             :variant="potionsWarning">
             <div class="d-flex w-100 justify-content-between">
-              <h5 class="mb-1 dotted" v-b-tooltip.hover title="Tracks Demo shout, Thunderclap, Scorpid Sting debuffs. As well as Ironshield potion usage.">DEBUFFS & OTHERS</h5>
+              <h5 class="mb-1 dotted" v-b-tooltip.hover title="Tracks Demo Shout, Thunderclap, Scorpid Sting debuffs. As well as Ironshield potion usage.">DEBUFFS & OTHERS</h5>
             </div>
             <p class="mb-2" v-if="results['missing_debuffs'].length > 0">
               <b>Missing Debuffs: <span class="red">{{ results['missing_debuffs'].join(' and ') }}</span></b>
@@ -214,7 +217,7 @@
 <script>
 import axios from 'axios';
 import {mapFields} from 'vuex-map-fields';
-import {mapMutations} from 'vuex';
+import {mapMutations, mapGetters} from 'vuex';
 import Player from './Player.vue';
 
 // https://stackoverflow.com/questions/38085352/how-to-use-two-y-axes-in-chart-js-v2
@@ -233,7 +236,7 @@ export default {
       // 2 showing results
       state: 0,
       fetching: false,
-      url: '',
+      // url: '',
       players: null,
       results: {},
       assignedHealerCasts: {},
@@ -256,9 +259,27 @@ export default {
   },
 
   computed: {
+    ...mapGetters(['shareDeathAnalyzerURLParams']),
     ...mapFields(['deathAnalyzer',]),
     tankOptions() {
       if (!this.players || typeof this.players['tanks'] === 'undefined') return;
+      // when we swap between deaths from different fights in the same log
+      // sometimes tanks will change. so for instance, bigchadbear is a bear tank on najentus
+      // but doens't appear as a tank on illidan
+      // so if that's the case, we remove him from this.deathAnalyzer['healerAssignments'])
+
+      // the tankIds for this specific fight
+      let tankIds = this.players['tanks'].map((player) => {return player['id']});
+
+      // tankIds from previous healing assignments saved
+      // if there are missing tankIds, delete
+      for (let key in this.deathAnalyzer['healerAssignments']) {
+        let _tank_id = this.deathAnalyzer['healerAssignments'][key];
+        if (_tank_id >= 0 && tankIds.indexOf(_tank_id) === -1) {
+          delete this.deathAnalyzer['healerAssignments'][key];
+        }
+      }
+
       let results = [];
       for (let i = 0; i < this.players['tanks'].length; i++) {
         const tank = this.players['tanks'][i];
@@ -298,7 +319,7 @@ export default {
     },
   },
   methods: {
-    ...mapMutations(['setClassName', 'resetDeathAnalyzer']),
+    ...mapMutations(['setClassName', 'resetDeathAnalyzer', 'setDeathAnalyzerUsingParams']),
     convertPercentage(num) {    
       return +(Math.round(num * 100 + "e+1")  + "e-1");
     },
@@ -307,6 +328,10 @@ export default {
     },
     roundToOne(num) {    
       return +(Math.round(num + "e+1")  + "e-1");
+    },
+    reload() {
+      this.$router.push({name: 'death-analyzer'});
+      this.$router.go();
     },
     reset() {
       this.state = 0;
@@ -319,11 +344,11 @@ export default {
     pullInitialLogs() {
       this.reset();
       this.isUrlError = false;
-      if (this.url.indexOf('death=') === -1 && this.url.indexOf('source=') === -1) {
+      if (this.deathAnalyzer['url'].indexOf('death=') === -1 && this.deathAnalyzer['url'].indexOf('source=') === -1) {
         this.urlErrorMessage = 'Invalid url - missing "death=xx". Please see the image below for help.';
         this.isUrlError = true;
         return;
-      } else if (this.url.indexOf('start=') > -1 || this.url.indexOf('end=') > -1){
+      } else if (this.deathAnalyzer['url'].indexOf('start=') > -1 || this.deathAnalyzer['url'].indexOf('end=') > -1){
         this.urlErrorMessage = 'Invalid url - do not clip timings. Please see the image below for help.';
         this.isUrlError = true;
         return;
@@ -332,11 +357,12 @@ export default {
       this.fetching = true;
       let app = this;
       axios
-        // .post('http://localhost:8000/main/death-analyzer/player-details/', {url: this.url})
-        .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/player-details/', {url: this.url})
+        .post('http://localhost:8000/main/death-analyzer/player-details/', {url: this.deathAnalyzer['url']})
+        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/player-details/', {url: this.deathAnalyzer['url']})
         .then((response) => {
           app.fetching = false;
           app.players = response.data['players'];
+          console.log(app.players);
 
           // if it is the same log, we keep assignments, otherwise we clear
           if (response.data['wcl_code'] !== app.deathAnalyzer['wclCode']) {
@@ -366,21 +392,24 @@ export default {
       this.fetching = true;
       let app = this;
       axios
-        // .post('http://localhost:8000/main/death-analyzer/analyze/', {
-        .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/analyze/', {
-          url: this.url,
+        .post('http://localhost:8000/main/death-analyzer/analyze/', {
+        // .post('http://spire-druid-prio.herokuapp.com/main/death-analyzer/analyze/', {
+          url: this.deathAnalyzer['url'],
           healerAssignments: this.deathAnalyzer['healerAssignments'],
         })
         // .post('http://spire-druid-prio.herokuapp.com/main/blended-mana/', {url: url})
         .then((response) => {
           app.fetching = false;
           app.results = response.data;
+          console.log(app.results);
           app.deathDetails = response.data['death_details'];
           app.assignedHealerCasts = response.data['assigned_healers'];
           app.otherHealerCasts = response.data['other_healers'];
-          console.log(response.data);
 
           app.state = 2;
+          // update the url
+          this.$router.push({name: 'death-analyzer', query: {data: this.shareDeathAnalyzerURLParams}});
+
         })
         .catch(function (error) {
           app.fetching = false;
@@ -399,6 +428,13 @@ export default {
   },
   mounted() {
     this.setClassName('who');
+    let url = new URL(location.href);
+    let params = url.searchParams.get('data');
+    if (params !== null) {
+      this.setDeathAnalyzerUsingParams(params);
+      this.pullMainLogs();
+    }
+
     // sets events
     window.addEventListener('keydown', (e) => {
       if (this.state !== 1) return;

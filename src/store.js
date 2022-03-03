@@ -8,6 +8,16 @@ import {getField, updateField} from 'vuex-map-fields';
 
 Vue.use(Vuex);
 
+function parseQuery(queryString) {
+  var query = {};
+  var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+  for (var i = 0; i < pairs.length; i++) {
+      var pair = pairs[i].split('=');
+      query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+  }
+  return query;
+}
+
 export const store = new Vuex.Store({
   state: {
     className: 'priest',
@@ -118,9 +128,9 @@ export const store = new Vuex.Store({
       '2pT6': false,
       '4pT6': false,
     },
-
     deathAnalyzer: {
       wclCode: '',
+      url: '',
       healerAssignments: {},
     },
   },
@@ -130,10 +140,29 @@ export const store = new Vuex.Store({
     getField,
     shareURLParams: (state) => {
       let paramsString = '';
+      // easy mistake to make
+      // state.keys refer to the field keys, not state.keys()
       for (let key of state.keys) {
         paramsString += `${state.oomOptions[key]};`
       }
+      // removes the final ;
       return paramsString.substring(0, paramsString.length - 1);
+    },
+    shareDeathAnalyzerURLParams: (state) => {
+      let healerAssignmentsStr = '';
+      for (let key in state['deathAnalyzer']['healerAssignments']) {
+        if (key === '' || !key || !state['deathAnalyzer']['healerAssignments'][key]) continue;
+        healerAssignmentsStr += `${key}:${state['deathAnalyzer']['healerAssignments'][key]};`
+      }
+
+      healerAssignmentsStr = healerAssignmentsStr.substring(0, healerAssignmentsStr.length - 1);
+      const toConvert = {
+        'url': state['deathAnalyzer']['url'],
+        'wclCode': state['deathAnalyzer']['wclCode'],
+        'healerAssignments': healerAssignmentsStr,
+      };
+
+      return new URLSearchParams(toConvert).toString();
     },
   },
   mutations: {
@@ -141,7 +170,6 @@ export const store = new Vuex.Store({
     // `mutations` of your Vuex store instance.
     updateField,
     resetDeathAnalyzer(state) {
-      console.log('resetting');
       Vue.set(state['deathAnalyzer'], 'wclCode', '');
       Vue.set(state['deathAnalyzer'], 'healerAssignments', {});
     },
@@ -165,10 +193,22 @@ export const store = new Vuex.Store({
         }
         state.oomOptions[state.keys[index]] = modifiedValue;
       }
-
-      // if (String(a).toLowerCase() == "true")
-      // console.log(values);
     },
-    // setState(state, string)
+    setDeathAnalyzerUsingParams(state, paramsString) {
+      if (!paramsString) return;
+      state
+      let data = parseQuery(paramsString);
+      state['deathAnalyzer']['url'] = data['url'];
+      state['deathAnalyzer']['wclCode'] = data['wclCode'];
+
+      let healerAssignments = {};
+      const healerAssignmentsStr = data['healerAssignments'].split(';');
+      for (let i = 0; i < healerAssignmentsStr.length; i++) {
+        //key:value
+        let temp = healerAssignmentsStr[i].split(':');
+        healerAssignments[parseInt(temp[0])] = parseInt(temp[1]);
+      }
+      state['deathAnalyzer']['healerAssignments'] = healerAssignments;
+    },
   },
 });
